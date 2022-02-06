@@ -3,19 +3,21 @@ import 'src/domain.dart';
 void main() {
   var user = User();
   user
-    ..name = 'someone'
+    ..name = 'administrator'
     ..address = 'abc'
     ..age = 23
     ..save(); // insert
 
-  print(user.toString());
-
   user
     ..id = 100
-    ..save(); // update
+    ..save(); // update because id is set.
 
-  print(user.toString());
+  // call business method
   print('is admin? ${user.isAdmin()}');
+  print('user.toMap() : ${user.toMap()}');
+
+  // load data from a map
+  user.loadMap({"name": 'admin123', "xxxx": 'xxxx'});
 
   var book = Book();
   book

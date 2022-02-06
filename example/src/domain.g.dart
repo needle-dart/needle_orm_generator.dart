@@ -7,35 +7,57 @@ part of 'domain.dart';
 // **************************************************************************
 
 abstract class __Model {
+  // abstract begin
+
+  String get __tableName;
+  String? get __idFieldName;
+
+  dynamic __getField(String fieldName, {errorOnNonExistField: true});
+  void __setField(String fieldName, dynamic value,
+      {errorOnNonExistField: true});
+
+  Map<String, dynamic> toMap();
+
+  // abstract end
+
+  // mark whether this instance is loaded from db.
+  bool __isLoadedFromDb = false;
+
+  // mark all modified fields after loaded
   final __dirtyMap = <String, bool>{};
 
-  //abstract
-  dynamic __getField(String fieldName);
-
-  //abstract
-  String? __getIdFieldName();
+  void loadMap(Map<String, dynamic> m, {errorOnNonExistField: false}) {
+    m.forEach((key, value) {
+      __setField(key, value, errorOnNonExistField: errorOnNonExistField);
+    });
+  }
 
   void __cleanDirty() {
     __dirtyMap.clear();
   }
 
-  String toString() {
-    return __dirtyMap.keys.map((e) => "$e:${__getField(e)}").join(",");
+  String __dirtyValues() {
+    return __dirtyMap.keys
+        .map((e) => "${e.toLowerCase()} : ${__getField(e)}")
+        .join(", ");
   }
 
   void insert() {
-    print('insert ...');
+    __beforeInsert();
+    print('insert into $__tableName { ${__dirtyValues()}  }');
+    __afterInsert();
   }
 
   void update() {
-    print('update ...');
+    __beforeUpdate();
+    print('update $__tableName { ${__dirtyValues()} }');
+    __afterUpdate();
   }
 
   void save() {
-    var idName = __getIdFieldName();
-    if (idName == null) throw 'no @ID field';
+    if (__idFieldName == null) throw 'no @ID field';
 
-    if (__getField(idName) != null) {
+    if (__getField(__idFieldName!) != null) {
       update();
     } else {
       insert();
@@ -43,12 +65,26 @@ abstract class __Model {
   }
 
   void delete() {
+    __beforeDelete();
     print('delete ...');
+    __afterDelete();
   }
 
-  void deletePermant() {
-    print('deletePermant ...');
+  void deletePermanent() {
+    __beforeDeletePermanent();
+    print('deletePermanent ...');
+    __afterDeletePermanent();
   }
+
+  void __beforeInsert() {}
+  void __beforeUpdate() {}
+  void __beforeDelete() {}
+  void __beforeDeletePermanent() {}
+  void __afterInsert() {}
+  void __afterUpdate() {}
+  void __afterDelete() {}
+  void __afterDeletePermanent() {}
+  void __afterLoad() {}
 }
 
 abstract class BaseModel extends __Model {
@@ -56,85 +92,141 @@ abstract class BaseModel extends __Model {
   int? get id => _id;
   set id(int? v) {
     _id = v;
-    __dirtyMap['_id'] = true;
+    __dirtyMap['id'] = true;
   }
 
   int? _version;
   int? get version => _version;
   set version(int? v) {
     _version = v;
-    __dirtyMap['_version'] = true;
+    __dirtyMap['version'] = true;
   }
 
   bool? _deleted;
   bool? get deleted => _deleted;
   set deleted(bool? v) {
     _deleted = v;
-    __dirtyMap['_deleted'] = true;
+    __dirtyMap['deleted'] = true;
   }
 
   DateTime? _createdAt;
   DateTime? get createdAt => _createdAt;
   set createdAt(DateTime? v) {
     _createdAt = v;
-    __dirtyMap['_createdAt'] = true;
+    __dirtyMap['createdAt'] = true;
   }
 
   DateTime? _updatedAt;
   DateTime? get updatedAt => _updatedAt;
   set updatedAt(DateTime? v) {
     _updatedAt = v;
-    __dirtyMap['_updatedAt'] = true;
+    __dirtyMap['updatedAt'] = true;
   }
 
   String? _createdBy;
   String? get createdBy => _createdBy;
   set createdBy(String? v) {
     _createdBy = v;
-    __dirtyMap['_createdBy'] = true;
+    __dirtyMap['createdBy'] = true;
   }
 
   String? _lastUpdatedBy;
   String? get lastUpdatedBy => _lastUpdatedBy;
   set lastUpdatedBy(String? v) {
     _lastUpdatedBy = v;
-    __dirtyMap['_lastUpdatedBy'] = true;
+    __dirtyMap['lastUpdatedBy'] = true;
   }
 
   String? _remark;
   String? get remark => _remark;
   set remark(String? v) {
     _remark = v;
-    __dirtyMap['_remark'] = true;
+    __dirtyMap['remark'] = true;
   }
 
   BaseModel();
 
-  dynamic __getField(String fieldName) {
+  @override
+  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
-      case "_id":
+      case "id":
         return _id;
-      case "_version":
+      case "version":
         return _version;
-      case "_deleted":
+      case "deleted":
         return _deleted;
-      case "_createdAt":
+      case "createdAt":
         return _createdAt;
-      case "_updatedAt":
+      case "updatedAt":
         return _updatedAt;
-      case "_createdBy":
+      case "createdBy":
         return _createdBy;
-      case "_lastUpdatedBy":
+      case "lastUpdatedBy":
         return _lastUpdatedBy;
-      case "_remark":
+      case "remark":
         return _remark;
       default:
-        throw 'class _BaseModel has now such field: $fieldName';
+        if (errorOnNonExistField)
+          throw 'class _BaseModel has now such field: $fieldName';
     }
   }
 
-  String? __getIdFieldName() {
-    return "_id";
+  @override
+  void __setField(String fieldName, dynamic value,
+      {errorOnNonExistField: true}) {
+    switch (fieldName) {
+      case "id":
+        _id = value;
+        break;
+      case "version":
+        _version = value;
+        break;
+      case "deleted":
+        _deleted = value;
+        break;
+      case "createdAt":
+        _createdAt = value;
+        break;
+      case "updatedAt":
+        _updatedAt = value;
+        break;
+      case "createdBy":
+        _createdBy = value;
+        break;
+      case "lastUpdatedBy":
+        _lastUpdatedBy = value;
+        break;
+      case "remark":
+        _remark = value;
+        break;
+      default:
+        if (errorOnNonExistField)
+          throw 'class _BaseModel has now such field: $fieldName';
+    }
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      "id": _id,
+      "version": _version,
+      "deleted": _deleted,
+      "createdAt": _createdAt,
+      "updatedAt": _updatedAt,
+      "createdBy": _createdBy,
+      "lastUpdatedBy": _lastUpdatedBy,
+      "remark": _remark,
+    };
+  }
+
+  @override
+  String get __tableName {
+    return "basemodel";
+  }
+
+  @override
+  String? get __idFieldName {
+    return "id";
   }
 }
 
@@ -143,31 +235,64 @@ class Book extends BaseModel {
   String? get title => _title;
   set title(String? v) {
     _title = v;
-    __dirtyMap['_title'] = true;
+    __dirtyMap['title'] = true;
   }
 
   User? _author;
   User? get author => _author;
   set author(User? v) {
     _author = v;
-    __dirtyMap['_author'] = true;
+    __dirtyMap['author'] = true;
   }
 
   Book();
 
-  dynamic __getField(String fieldName) {
+  @override
+  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
-      case "_title":
+      case "title":
         return _title;
-      case "_author":
+      case "author":
         return _author;
       default:
-        return super.__getField(fieldName);
+        return super
+            .__getField(fieldName, errorOnNonExistField: errorOnNonExistField);
     }
   }
 
-  String? __getIdFieldName() {
-    return "_id";
+  @override
+  void __setField(String fieldName, dynamic value,
+      {errorOnNonExistField: true}) {
+    switch (fieldName) {
+      case "title":
+        _title = value;
+        break;
+      case "author":
+        _author = value;
+        break;
+      default:
+        super.__setField(fieldName, value,
+            errorOnNonExistField: errorOnNonExistField);
+    }
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      "title": _title,
+      "author": _author,
+      ...super.toMap(),
+    };
+  }
+
+  @override
+  String get __tableName {
+    return "book";
+  }
+
+  @override
+  String? get __idFieldName {
+    return "id";
   }
 }
 
@@ -176,49 +301,100 @@ class User extends BaseModel {
   String? get name => _name;
   set name(String? v) {
     _name = v;
-    __dirtyMap['_name'] = true;
+    __dirtyMap['name'] = true;
   }
 
   String? _loginName;
   String? get loginName => _loginName;
   set loginName(String? v) {
     _loginName = v;
-    __dirtyMap['_loginName'] = true;
+    __dirtyMap['loginName'] = true;
   }
 
   String? _address;
   String? get address => _address;
   set address(String? v) {
     _address = v;
-    __dirtyMap['_address'] = true;
+    __dirtyMap['address'] = true;
   }
 
   int? _age;
   int? get age => _age;
   set age(int? v) {
     _age = v;
-    __dirtyMap['_age'] = true;
+    __dirtyMap['age'] = true;
   }
 
   User();
 
-  dynamic __getField(String fieldName) {
+  @override
+  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
-      case "_name":
+      case "name":
         return _name;
-      case "_loginName":
+      case "loginName":
         return _loginName;
-      case "_address":
+      case "address":
         return _address;
-      case "_age":
+      case "age":
         return _age;
       default:
-        return super.__getField(fieldName);
+        return super
+            .__getField(fieldName, errorOnNonExistField: errorOnNonExistField);
     }
   }
 
-  String? __getIdFieldName() {
-    return "_id";
+  @override
+  void __setField(String fieldName, dynamic value,
+      {errorOnNonExistField: true}) {
+    switch (fieldName) {
+      case "name":
+        _name = value;
+        break;
+      case "loginName":
+        _loginName = value;
+        break;
+      case "address":
+        _address = value;
+        break;
+      case "age":
+        _age = value;
+        break;
+      default:
+        super.__setField(fieldName, value,
+            errorOnNonExistField: errorOnNonExistField);
+    }
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      "name": _name,
+      "loginName": _loginName,
+      "address": _address,
+      "age": _age,
+      ...super.toMap(),
+    };
+  }
+
+  @override
+  String get __tableName {
+    return "user";
+  }
+
+  @override
+  String? get __idFieldName {
+    return "id";
+  }
+
+  @override
+  void __beforeInsert() {
+    beforeInsert();
+  }
+
+  @override
+  void __afterInsert() {
+    afterInsert();
   }
 }
 
@@ -227,21 +403,50 @@ class Job extends BaseModel {
   String? get name => _name;
   set name(String? v) {
     _name = v;
-    __dirtyMap['_name'] = true;
+    __dirtyMap['name'] = true;
   }
 
   Job();
 
-  dynamic __getField(String fieldName) {
+  @override
+  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
-      case "_name":
+      case "name":
         return _name;
       default:
-        return super.__getField(fieldName);
+        return super
+            .__getField(fieldName, errorOnNonExistField: errorOnNonExistField);
     }
   }
 
-  String? __getIdFieldName() {
-    return "_id";
+  @override
+  void __setField(String fieldName, dynamic value,
+      {errorOnNonExistField: true}) {
+    switch (fieldName) {
+      case "name":
+        _name = value;
+        break;
+      default:
+        super.__setField(fieldName, value,
+            errorOnNonExistField: errorOnNonExistField);
+    }
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      "name": _name,
+      ...super.toMap(),
+    };
+  }
+
+  @override
+  String get __tableName {
+    return "job";
+  }
+
+  @override
+  String? get __idFieldName {
+    return "id";
   }
 }

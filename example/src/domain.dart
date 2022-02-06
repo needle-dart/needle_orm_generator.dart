@@ -2,8 +2,8 @@
 
 import 'package:needle_orm/needle_orm.dart';
 
-part 'domain.g.dart';
-part 'domain.part.dart';
+part 'domain.g.dart'; // auto generated code
+part 'domain.part.dart'; // business logic code
 
 // all Class names and Field names must start with '_'
 // all business logic must be defined in file : 'domain.part.dart'
@@ -35,14 +35,6 @@ abstract class _BaseModel {
   String? _remark;
 
   _BaseModel();
-
-/*   
-  @PrePersist()
-  void initProps() {
-    _version = 0;
-    _deleted = false;
-  }
- */
 }
 
 @DB(name: "mysql_example_db")
@@ -60,7 +52,7 @@ class _Book extends _BaseModel {
 
 @DB(name: "mysql_example_db")
 @Table(name: 'tbl_user')
-@Entity()
+@Entity(beforeInsert: 'beforeInsert', afterInsert: 'afterInsert')
 class _User extends _BaseModel {
   @Column()
   String? _name;
