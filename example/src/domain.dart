@@ -52,7 +52,7 @@ class _Book extends _BaseModel {
 
 @DB(name: "mysql_example_db")
 @Table(name: 'tbl_user')
-@Entity(beforeInsert: 'beforeInsert', afterInsert: 'afterInsert')
+@Entity(prePersist: 'beforeInsert', postPersist: 'afterInsert')
 class _User extends _BaseModel {
   @Column()
   String? _name;

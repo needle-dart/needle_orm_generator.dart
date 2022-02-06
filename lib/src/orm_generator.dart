@@ -16,15 +16,15 @@ extension StringUtil on String {
 extension EntityInspector on ConstantReader {
   Entity getEntityAnnotation() {
     return Entity(
-      beforeInsert: this.peek("beforeInsert")?.stringValue,
-      beforeUpdate: this.peek("beforeUpdate")?.stringValue,
-      beforeDelete: this.peek("beforeDelete")?.stringValue,
-      beforeDeletePermanent: this.peek("beforeDeletePermanent")?.stringValue,
-      afterInsert: this.peek("afterInsert")?.stringValue,
-      afterUpdate: this.peek("afterUpdate")?.stringValue,
-      afterDelete: this.peek("afterDelete")?.stringValue,
-      afterDeletePermanent: this.peek("afterDeletePermanent")?.stringValue,
-      afterLoad: this.peek("afterLoad")?.stringValue,
+      prePersist: this.peek("prePersist")?.stringValue,
+      preUpdate: this.peek("preUpdate")?.stringValue,
+      preRemove: this.peek("preRemove")?.stringValue,
+      preRemovePermanent: this.peek("preRemovePermanent")?.stringValue,
+      postPersist: this.peek("postPersist")?.stringValue,
+      postUpdate: this.peek("postUpdate")?.stringValue,
+      postRemove: this.peek("postRemove")?.stringValue,
+      postRemovePermanent: this.peek("postRemovePermanent")?.stringValue,
+      postLoad: this.peek("postLoad")?.stringValue,
     );
   }
 }
@@ -124,15 +124,15 @@ class ClassInspector {
         return "id";
       }
 
-      ${overrideBeforeInsert()}
-      ${overrideBeforeUpdate()}
-      ${overrideBeforeDelete()}
-      ${overrideBeforeDeletePermanent()}
-      ${overrideAfterInsert()}
-      ${overrideAfterUpdate()}
-      ${overrideAfterDelete()}
-      ${overrideAfterDeletePermanent()}
-      ${overrideAfterLoad()}
+      ${overrideprePersist()}
+      ${overridepreUpdate()}
+      ${overridepreRemove()}
+      ${overridepreRemovePermanent()}
+      ${overridepostPersist()}
+      ${overridepostUpdate()}
+      ${overridepostRemove()}
+      ${overridepostRemovePermanent()}
+      ${overridepostLoad()}
 
     }''';
   }
@@ -145,68 +145,67 @@ class ClassInspector {
       ''';
   }
 
-  String overrideAfterLoad() {
-    if (entity.afterLoad == null) {
+  String overridepostLoad() {
+    if (entity.postLoad == null) {
       return '';
     }
-    return overrideEvent('afterLoad', entity.afterLoad!);
+    return overrideEvent('postLoad', entity.postLoad!);
   }
 
-  String overrideBeforeInsert() {
-    if (entity.beforeInsert == null) {
+  String overrideprePersist() {
+    if (entity.prePersist == null) {
       return '';
     }
-    return overrideEvent('beforeInsert', entity.beforeInsert!);
+    return overrideEvent('prePersist', entity.prePersist!);
   }
 
-  String overrideAfterInsert() {
-    if (entity.afterInsert == null) {
+  String overridepostPersist() {
+    if (entity.postPersist == null) {
       return '';
     }
-    return overrideEvent('afterInsert', entity.afterInsert!);
+    return overrideEvent('postPersist', entity.postPersist!);
   }
 
-  String overrideBeforeUpdate() {
-    if (entity.beforeUpdate == null) {
+  String overridepreUpdate() {
+    if (entity.preUpdate == null) {
       return '';
     }
-    return overrideEvent('beforeUpdate', entity.beforeUpdate!);
+    return overrideEvent('preUpdate', entity.preUpdate!);
   }
 
-  String overrideAfterUpdate() {
-    if (entity.afterUpdate == null) {
+  String overridepostUpdate() {
+    if (entity.postUpdate == null) {
       return '';
     }
-    return overrideEvent('afterUpdate', entity.afterUpdate!);
+    return overrideEvent('postUpdate', entity.postUpdate!);
   }
 
-  String overrideBeforeDelete() {
-    if (entity.beforeDelete == null) {
+  String overridepreRemove() {
+    if (entity.preRemove == null) {
       return '';
     }
-    return overrideEvent('beforeDelete', entity.beforeDelete!);
+    return overrideEvent('preRemove', entity.preRemove!);
   }
 
-  String overrideAfterDelete() {
-    if (entity.afterDelete == null) {
+  String overridepostRemove() {
+    if (entity.postRemove == null) {
       return '';
     }
-    return overrideEvent('afterDelete', entity.afterDelete!);
+    return overrideEvent('postRemove', entity.postRemove!);
   }
 
-  String overrideBeforeDeletePermanent() {
-    if (entity.beforeDeletePermanent == null) {
+  String overridepreRemovePermanent() {
+    if (entity.preRemovePermanent == null) {
       return '';
     }
-    return overrideEvent(
-        'beforeDeletePermanent', entity.beforeDeletePermanent!);
+    return overrideEvent('preRemovePermanent', entity.preRemovePermanent!);
   }
 
-  String overrideAfterDeletePermanent() {
-    if (entity.afterDeletePermanent == null) {
+  String overridepostRemovePermanent() {
+    if (entity.postRemovePermanent == null) {
       return '';
     }
-    return overrideEvent('afterDeletePermanent', entity.afterDeletePermanent!);
+    return overrideEvent('postRemovePermanent', entity.postRemovePermanent!);
   }
 
   String overrideGetField(ClassElement clazz) {
@@ -286,15 +285,15 @@ class ClassInspector {
       }
 
       void insert() {
-        __beforeInsert();
+        __prePersist();
         print('insert into \$__tableName { \${__dirtyValues()}  }' );
-        __afterInsert();
+        __postPersist();
       }
 
       void update() {
-        __beforeUpdate();
+        __preUpdate();
         print('update \$__tableName { \${__dirtyValues()} }' );
-        __afterUpdate();
+        __postUpdate();
       }
 
       void save() {
@@ -308,26 +307,26 @@ class ClassInspector {
       }
 
       void delete() {
-        __beforeDelete();
+        __preRemove();
         print('delete ...');
-        __afterDelete();
+        __postRemove();
       }
 
       void deletePermanent() {
-        __beforeDeletePermanent();
+        __preRemovePermanent();
         print('deletePermanent ...');
-        __afterDeletePermanent();
+        __postRemovePermanent();
       }
 
-      void __beforeInsert() {}
-      void __beforeUpdate() {}
-      void __beforeDelete() {}
-      void __beforeDeletePermanent() {}
-      void __afterInsert() {}
-      void __afterUpdate() {}
-      void __afterDelete() {}
-      void __afterDeletePermanent() {}
-      void __afterLoad() {}
+      void __prePersist() {}
+      void __preUpdate() {}
+      void __preRemove() {}
+      void __preRemovePermanent() {}
+      void __postPersist() {}
+      void __postUpdate() {}
+      void __postRemove() {}
+      void __postRemovePermanent() {}
+      void __postLoad() {}
     }
     ''';
 }

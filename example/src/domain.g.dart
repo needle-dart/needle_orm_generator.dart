@@ -43,15 +43,15 @@ abstract class __Model {
   }
 
   void insert() {
-    __beforeInsert();
+    __prePersist();
     print('insert into $__tableName { ${__dirtyValues()}  }');
-    __afterInsert();
+    __postPersist();
   }
 
   void update() {
-    __beforeUpdate();
+    __preUpdate();
     print('update $__tableName { ${__dirtyValues()} }');
-    __afterUpdate();
+    __postUpdate();
   }
 
   void save() {
@@ -65,26 +65,26 @@ abstract class __Model {
   }
 
   void delete() {
-    __beforeDelete();
+    __preRemove();
     print('delete ...');
-    __afterDelete();
+    __postRemove();
   }
 
   void deletePermanent() {
-    __beforeDeletePermanent();
+    __preRemovePermanent();
     print('deletePermanent ...');
-    __afterDeletePermanent();
+    __postRemovePermanent();
   }
 
-  void __beforeInsert() {}
-  void __beforeUpdate() {}
-  void __beforeDelete() {}
-  void __beforeDeletePermanent() {}
-  void __afterInsert() {}
-  void __afterUpdate() {}
-  void __afterDelete() {}
-  void __afterDeletePermanent() {}
-  void __afterLoad() {}
+  void __prePersist() {}
+  void __preUpdate() {}
+  void __preRemove() {}
+  void __preRemovePermanent() {}
+  void __postPersist() {}
+  void __postUpdate() {}
+  void __postRemove() {}
+  void __postRemovePermanent() {}
+  void __postLoad() {}
 }
 
 abstract class BaseModel extends __Model {
@@ -388,12 +388,12 @@ class User extends BaseModel {
   }
 
   @override
-  void __beforeInsert() {
+  void __prePersist() {
     beforeInsert();
   }
 
   @override
-  void __afterInsert() {
+  void __postPersist() {
     afterInsert();
   }
 }
