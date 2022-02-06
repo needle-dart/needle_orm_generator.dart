@@ -230,7 +230,7 @@ class ClassInspector {
       @override
       void __setField(String fieldName, dynamic value, {errorOnNonExistField: true}){
         switch (fieldName) {
-          ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": _${e.name.removePrefix()} = value; break;').join('\n')} 
+          ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": ${e.name.removePrefix()} = value; break;').join('\n')} 
           default: $defaultStmt ;
         }
       }''';

@@ -176,28 +176,28 @@ abstract class BaseModel extends __Model {
       {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "id":
-        _id = value;
+        id = value;
         break;
       case "version":
-        _version = value;
+        version = value;
         break;
       case "deleted":
-        _deleted = value;
+        deleted = value;
         break;
       case "createdAt":
-        _createdAt = value;
+        createdAt = value;
         break;
       case "updatedAt":
-        _updatedAt = value;
+        updatedAt = value;
         break;
       case "createdBy":
-        _createdBy = value;
+        createdBy = value;
         break;
       case "lastUpdatedBy":
-        _lastUpdatedBy = value;
+        lastUpdatedBy = value;
         break;
       case "remark":
-        _remark = value;
+        remark = value;
         break;
       default:
         if (errorOnNonExistField)
@@ -265,10 +265,10 @@ class Book extends BaseModel {
       {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "title":
-        _title = value;
+        title = value;
         break;
       case "author":
-        _author = value;
+        author = value;
         break;
       default:
         super.__setField(fieldName, value,
@@ -349,16 +349,16 @@ class User extends BaseModel {
       {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "name":
-        _name = value;
+        name = value;
         break;
       case "loginName":
-        _loginName = value;
+        loginName = value;
         break;
       case "address":
-        _address = value;
+        address = value;
         break;
       case "age":
-        _age = value;
+        age = value;
         break;
       default:
         super.__setField(fieldName, value,
@@ -424,7 +424,7 @@ class Job extends BaseModel {
       {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "name":
-        _name = value;
+        name = value;
         break;
       default:
         super.__setField(fieldName, value,
