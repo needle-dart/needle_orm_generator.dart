@@ -2,112 +2,137 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/src/builder/build_step.dart';
 import 'package:needle_orm/needle_orm.dart';
+import 'package:needle_orm_generator/src/common.dart';
 import 'package:source_gen/source_gen.dart';
+import 'helper.dart';
 
-extension StringUtil on String {
-  String removePrefix([String prefix = '_']) {
-    if (this.startsWith(prefix)) {
-      return this.substring(prefix.length);
-    }
-    return this;
-  }
-}
-
-extension EntityInspector on ConstantReader {
-  Entity getEntityAnnotation() {
-    return Entity(
-      prePersist: this.peek("prePersist")?.stringValue,
-      preUpdate: this.peek("preUpdate")?.stringValue,
-      preRemove: this.peek("preRemove")?.stringValue,
-      preRemovePermanent: this.peek("preRemovePermanent")?.stringValue,
-      postPersist: this.peek("postPersist")?.stringValue,
-      postUpdate: this.peek("postUpdate")?.stringValue,
-      postRemove: this.peek("postRemove")?.stringValue,
-      postRemovePermanent: this.peek("postRemovePermanent")?.stringValue,
-      postLoad: this.peek("postLoad")?.stringValue,
-    );
-  }
-}
-
-class OrmGenerator extends GeneratorForAnnotation<Entity> {
-  bool commonAdded = false;
-
+class NeedleOrmModelGenerator extends GeneratorForAnnotation<Entity> {
   @override
   FutureOr<String> generateForAnnotatedElement(
       Element element, ConstantReader annotation, BuildStep buildStep) {
     if (element is! ClassElement) {
       throw 'The top @OrmAnnotation() annotation can only be applied to classes.';
     }
-    if (!commonAdded) {
-      commonAdded = true;
-      return ClassInspector(element, true, annotation).generate();
-    }
-    return ClassInspector(element, false, annotation).generate();
+    return ClassInspector(element, annotation).generate();
   }
 }
 
 class FieldInspector {
   final FieldElement fieldElement;
   String name;
+  List<OrmAnnotation> ormAnnotations = [];
 
-  FieldInspector(this.fieldElement) : name = fieldElement.name.removePrefix();
+  FieldInspector(this.fieldElement) : name = fieldElement.name.removePrefix() {
+    handleAnnotations(fieldElement);
+  }
+
+  void handleAnnotations(FieldElement ce) {
+    ce.metadata.forEach((annot) {
+      var name = annot.name;
+      switch (name) {
+        case 'DbComment':
+          ormAnnotations.add(annot.toDbComment());
+          break;
+        case 'Column':
+          ormAnnotations.add(annot.toColumn());
+          break;
+        case 'ID':
+          ormAnnotations.add(ID());
+          break;
+        case 'Lob':
+          ormAnnotations.add(Lob());
+          break;
+        case 'Version':
+          ormAnnotations.add(Version());
+          break;
+        case 'SoftDelete':
+          ormAnnotations.add(SoftDelete());
+          break;
+        case 'WhenCreated':
+          ormAnnotations.add(WhenCreated());
+          break;
+        case 'WhenModified':
+          ormAnnotations.add(WhenModified());
+          break;
+        case 'WhoCreated':
+          ormAnnotations.add(WhoCreated());
+          break;
+        case 'WhoModified':
+          ormAnnotations.add(WhoModified());
+          break;
+      }
+    });
+  }
 
   String generate() {
     var type = fieldElement.type.toString().removePrefix();
 
     return '''
-  $type _$name ;
-  $type get $name => _$name;
-  set $name($type v) {
-    _$name = v;
-    __dirtyMap['$name'] = true;
-  }
-''';
+      $type _$name ;
+      $type get $name => _$name;
+      set $name($type v) {
+        _$name = v;
+        __markDirty('$name');
+      }
+    ''';
   }
 }
 
 class ClassInspector {
   final ClassElement classElement;
-  final bool first;
   String name;
 
   late String tableName;
   ClassElement? superClassElement;
-  String? superName;
+  String? superClassName;
+  List<OrmAnnotation> ormAnnotations = [];
   late Entity entity;
 
-  bool topClass = true;
+  bool isTopClass = true;
   List<FieldElement> fields = [];
 
-  ClassInspector(this.classElement, this.first, ConstantReader annotation)
+  ClassInspector(this.classElement, ConstantReader annotation)
       : name = classElement.name.removePrefix() {
     if (classElement.supertype != null &&
         classElement.supertype!.element.name != 'Object') {
       superClassElement = classElement.supertype!.element;
-      superName = superClassElement!.name.removePrefix();
-      topClass = false;
+      superClassName = superClassElement!.name.removePrefix();
+      isTopClass = false;
     }
-    this.entity = annotation.getEntityAnnotation();
+
+    handleAnnotations(this.classElement);
+
+    this.entity = this.ormAnnotations.whereType<Entity>().first;
 
     tableName = name.toLowerCase();
+  }
+
+  void handleAnnotations(ClassElement ce) {
+    ce.metadata.forEach((annot) {
+      var name = annot.name;
+      switch (name) {
+        case 'Entity':
+          ormAnnotations.add(annot.toEntity());
+          break;
+      }
+    });
   }
 
   String generate() {
     var fields =
         classElement.fields.map((f) => FieldInspector(f).generate()).join('\n');
 
-    var prefix = first ? common : "";
-
-    var _superClassName = topClass ? "__Model" : superName;
+    var _superClassName = isTopClass ? "__Model" : superClassName;
 
     var _abstract = classElement.isAbstract ? "abstract" : "";
     return '''
-    $prefix
     $_abstract class $name extends $_superClassName { 
 
       $fields
 
       $name(); 
+
+      @override String get entityClassName => '$name';
 
       ${overrideGetField(classElement)}
       ${overrideSetField(classElement)}
@@ -209,35 +234,35 @@ class ClassInspector {
   }
 
   String overrideGetField(ClassElement clazz) {
-    var defaultStmt = topClass
-        ? "if(errorOnNonExistField) throw 'class ${clazz.name} has now such field: \$fieldName'"
-        : "return super.__getField(fieldName, errorOnNonExistField:errorOnNonExistField)";
+    var defaultStmt = isTopClass
+        ? "if(errorOnNonExistField){ throw 'class ${clazz.name} has now such field: \$fieldName'; }"
+        : "return super.__getField(fieldName, errorOnNonExistField:errorOnNonExistField);";
     return '''
       @override
       dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
         switch (fieldName) {
           ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": return _${e.name.removePrefix()};').join('\n')} 
-          default: $defaultStmt ;
+          default: $defaultStmt
         }
       }''';
   }
 
   String overrideSetField(ClassElement clazz) {
-    var defaultStmt = topClass
-        ? "if(errorOnNonExistField) throw 'class ${clazz.name} has now such field: \$fieldName'"
-        : "super.__setField(fieldName, value, errorOnNonExistField:errorOnNonExistField )";
+    var defaultStmt = isTopClass
+        ? "if(errorOnNonExistField){ throw 'class ${clazz.name} has now such field: \$fieldName'; }"
+        : "super.__setField(fieldName, value, errorOnNonExistField:errorOnNonExistField );";
     return '''
       @override
       void __setField(String fieldName, dynamic value, {errorOnNonExistField: true}){
         switch (fieldName) {
           ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": ${e.name.removePrefix()} = value; break;').join('\n')} 
-          default: $defaultStmt ;
+          default: $defaultStmt
         }
       }''';
   }
 
   String overrideToMap(ClassElement clazz) {
-    var superStmt = topClass ? "" : "...super.toMap(),";
+    var superStmt = isTopClass ? "" : "...super.toMap(),";
     return '''
       @override
         Map<String, dynamic> toMap() {
@@ -247,86 +272,4 @@ class ClassInspector {
           };
         }''';
   }
-
-  static const common = '''
-    abstract class __Model {
-      // abstract begin
-
-      String get __tableName;
-      String? get __idFieldName;
-
-      dynamic __getField(String fieldName,
-        {errorOnNonExistField: true});
-      void __setField(String fieldName, dynamic value,
-        {errorOnNonExistField: true});
-
-      Map<String, dynamic> toMap();
-
-      // abstract end
-
-      // mark whether this instance is loaded from db.
-      bool __isLoadedFromDb = false;
-
-      // mark all modified fields after loaded
-      final __dirtyMap = <String, bool>{};
-
-      void loadMap(Map<String, dynamic> m, {errorOnNonExistField: false}) {
-        m.forEach((key, value) {
-          __setField(key, value, errorOnNonExistField: errorOnNonExistField);
-        });
-      }
-
-      void __cleanDirty() {
-        __dirtyMap.clear();
-      }
-
-      String __dirtyValues() {
-        return __dirtyMap.keys.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
-      }
-
-      void insert() {
-        __prePersist();
-        print('insert into \$__tableName { \${__dirtyValues()}  }' );
-        __postPersist();
-      }
-
-      void update() {
-        __preUpdate();
-        print('update \$__tableName { \${__dirtyValues()} }' );
-        __postUpdate();
-      }
-
-      void save() {
-        if (__idFieldName == null) throw 'no @ID field';
-
-        if (__getField(__idFieldName!) != null) {
-          update();
-        } else {
-          insert();
-        }
-      }
-
-      void delete() {
-        __preRemove();
-        print('delete ...');
-        __postRemove();
-      }
-
-      void deletePermanent() {
-        __preRemovePermanent();
-        print('deletePermanent ...');
-        __postRemovePermanent();
-      }
-
-      void __prePersist() {}
-      void __preUpdate() {}
-      void __preRemove() {}
-      void __preRemovePermanent() {}
-      void __postPersist() {}
-      void __postUpdate() {}
-      void __postRemove() {}
-      void __postRemovePermanent() {}
-      void __postLoad() {}
-    }
-    ''';
 }

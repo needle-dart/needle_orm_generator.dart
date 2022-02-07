@@ -3,12 +3,13 @@
 part of 'domain.dart';
 
 // **************************************************************************
-// OrmGenerator
+// NeedleOrmMetaInfoGenerator
 // **************************************************************************
 
-abstract class __Model {
+abstract class __Model extends Model {
   // abstract begin
 
+  String get entityClassName;
   String get __tableName;
   String? get __idFieldName;
 
@@ -24,7 +25,7 @@ abstract class __Model {
   bool __isLoadedFromDb = false;
 
   // mark all modified fields after loaded
-  final __dirtyMap = <String, bool>{};
+  final __dirtyFields = <String>{};
 
   void loadMap(Map<String, dynamic> m, {errorOnNonExistField: false}) {
     m.forEach((key, value) {
@@ -32,25 +33,29 @@ abstract class __Model {
     });
   }
 
+  void __markDirty(String fieldName) {
+    __dirtyFields.add(fieldName);
+  }
+
   void __cleanDirty() {
-    __dirtyMap.clear();
+    __dirtyFields.clear();
   }
 
   String __dirtyValues() {
-    return __dirtyMap.keys
+    return __dirtyFields
         .map((e) => "${e.toLowerCase()} : ${__getField(e)}")
         .join(", ");
   }
 
   void insert() {
     __prePersist();
-    print('insert into $__tableName { ${__dirtyValues()}  }');
+    sqlExecutor.insert(this);
     __postPersist();
   }
 
   void update() {
     __preUpdate();
-    print('update $__tableName { ${__dirtyValues()} }');
+    sqlExecutor.update(this);
     __postUpdate();
   }
 
@@ -66,13 +71,13 @@ abstract class __Model {
 
   void delete() {
     __preRemove();
-    print('delete ...');
+    sqlExecutor.delete(this);
     __postRemove();
   }
 
   void deletePermanent() {
     __preRemovePermanent();
-    print('deletePermanent ...');
+    sqlExecutor.deletePermanent(this);
     __postRemovePermanent();
   }
 
@@ -87,64 +92,216 @@ abstract class __Model {
   void __postLoad() {}
 }
 
+class _ModelInspector extends ModelInspector<__Model> {
+  String getEntityClassName(__Model obj) {
+    return obj.entityClassName;
+  }
+
+  Map<String, dynamic> getDirtyFields(__Model model) {
+    var map = <String, dynamic>{};
+    model.__dirtyFields.forEach((name) {
+      map[name] = model.__getField(name);
+    });
+    return map;
+  }
+
+  void loadEntity(__Model model, Map<String, dynamic> m,
+      {errorOnNonExistField: false}) {
+    model.loadMap(m, errorOnNonExistField: false);
+    model.__isLoadedFromDb = true;
+    model.__cleanDirty();
+  }
+}
+
+class _SqlExecutor extends SqlExecutor<__Model> {
+  _SqlExecutor() : super(_ModelInspector(), _allOrmClasses);
+
+  @override
+  Future<List<List>> query(
+      String tableName, String query, Map<String, dynamic> substitutionValues,
+      [List<String> returningFields = const []]) {
+    DataSource ds = use(
+        scopeKeyDefaultDs); // get a DataSource from Scope , see routes.dart #post(Book)
+    return ds.execute(tableName, query, substitutionValues, returningFields);
+  }
+}
+
+class OrmMetaInfoBaseModel extends OrmMetaInfoClass {
+  OrmMetaInfoBaseModel()
+      : super('BaseModel',
+            isAbstract: true,
+            superClassName: 'Object',
+            ormAnnotations: [
+              Entity(),
+            ],
+            fields: [
+              OrmMetaInfoField('id', 'int?', ormAnnotations: [
+                ID(),
+              ]),
+              OrmMetaInfoField('version', 'int?', ormAnnotations: [
+                Version(),
+              ]),
+              OrmMetaInfoField('deleted', 'bool?', ormAnnotations: [
+                SoftDelete(),
+              ]),
+              OrmMetaInfoField('createdAt', 'DateTime?', ormAnnotations: [
+                WhenCreated(),
+              ]),
+              OrmMetaInfoField('updatedAt', 'DateTime?', ormAnnotations: [
+                WhenModified(),
+              ]),
+              OrmMetaInfoField('createdBy', 'String?', ormAnnotations: [
+                WhoCreated(),
+              ]),
+              OrmMetaInfoField('lastUpdatedBy', 'String?', ormAnnotations: [
+                WhoModified(),
+              ]),
+              OrmMetaInfoField('remark', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+            ]);
+}
+
+class OrmMetaInfoBook extends OrmMetaInfoClass {
+  OrmMetaInfoBook()
+      : super('Book',
+            isAbstract: false,
+            superClassName: 'BaseModel',
+            ormAnnotations: [
+              Table(),
+              Entity(ds: "mysql_example_db"),
+            ],
+            fields: [
+              OrmMetaInfoField('title', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('price', 'double?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('author', '_User?', ormAnnotations: [
+                ManyToOne(),
+              ]),
+            ]);
+}
+
+class OrmMetaInfoUser extends OrmMetaInfoClass {
+  OrmMetaInfoUser()
+      : super('User',
+            isAbstract: false,
+            superClassName: 'BaseModel',
+            ormAnnotations: [
+              Table(name: 'tbl_user'),
+              Entity(
+                  ds: Entity.DEFAULT_DS,
+                  prePersist: 'beforeInsert',
+                  postPersist: 'afterInsert'),
+            ],
+            fields: [
+              OrmMetaInfoField('name', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('loginName', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('address', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('age', 'int?', ormAnnotations: [
+                Column(),
+              ]),
+              OrmMetaInfoField('books', 'List<_Book>?', ormAnnotations: [
+                OneToMany(),
+              ]),
+            ]);
+}
+
+class OrmMetaInfoJob extends OrmMetaInfoClass {
+  OrmMetaInfoJob()
+      : super('Job',
+            isAbstract: false,
+            superClassName: 'BaseModel',
+            ormAnnotations: [
+              Entity(),
+            ],
+            fields: [
+              OrmMetaInfoField('name', 'String?', ormAnnotations: [
+                Column(),
+              ]),
+            ]);
+}
+
+final _allOrmClasses = [
+  OrmMetaInfoBaseModel(),
+  OrmMetaInfoBook(),
+  OrmMetaInfoUser(),
+  OrmMetaInfoJob()
+];
+
+// **************************************************************************
+// NeedleOrmModelGenerator
+// **************************************************************************
+
 abstract class BaseModel extends __Model {
   int? _id;
   int? get id => _id;
   set id(int? v) {
     _id = v;
-    __dirtyMap['id'] = true;
+    __markDirty('id');
   }
 
   int? _version;
   int? get version => _version;
   set version(int? v) {
     _version = v;
-    __dirtyMap['version'] = true;
+    __markDirty('version');
   }
 
   bool? _deleted;
   bool? get deleted => _deleted;
   set deleted(bool? v) {
     _deleted = v;
-    __dirtyMap['deleted'] = true;
+    __markDirty('deleted');
   }
 
   DateTime? _createdAt;
   DateTime? get createdAt => _createdAt;
   set createdAt(DateTime? v) {
     _createdAt = v;
-    __dirtyMap['createdAt'] = true;
+    __markDirty('createdAt');
   }
 
   DateTime? _updatedAt;
   DateTime? get updatedAt => _updatedAt;
   set updatedAt(DateTime? v) {
     _updatedAt = v;
-    __dirtyMap['updatedAt'] = true;
+    __markDirty('updatedAt');
   }
 
   String? _createdBy;
   String? get createdBy => _createdBy;
   set createdBy(String? v) {
     _createdBy = v;
-    __dirtyMap['createdBy'] = true;
+    __markDirty('createdBy');
   }
 
   String? _lastUpdatedBy;
   String? get lastUpdatedBy => _lastUpdatedBy;
   set lastUpdatedBy(String? v) {
     _lastUpdatedBy = v;
-    __dirtyMap['lastUpdatedBy'] = true;
+    __markDirty('lastUpdatedBy');
   }
 
   String? _remark;
   String? get remark => _remark;
   set remark(String? v) {
     _remark = v;
-    __dirtyMap['remark'] = true;
+    __markDirty('remark');
   }
 
   BaseModel();
+
+  @override
+  String get entityClassName => 'BaseModel';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -166,8 +323,9 @@ abstract class BaseModel extends __Model {
       case "remark":
         return _remark;
       default:
-        if (errorOnNonExistField)
+        if (errorOnNonExistField) {
           throw 'class _BaseModel has now such field: $fieldName';
+        }
     }
   }
 
@@ -200,8 +358,9 @@ abstract class BaseModel extends __Model {
         remark = value;
         break;
       default:
-        if (errorOnNonExistField)
+        if (errorOnNonExistField) {
           throw 'class _BaseModel has now such field: $fieldName';
+        }
     }
   }
 
@@ -235,23 +394,35 @@ class Book extends BaseModel {
   String? get title => _title;
   set title(String? v) {
     _title = v;
-    __dirtyMap['title'] = true;
+    __markDirty('title');
+  }
+
+  double? _price;
+  double? get price => _price;
+  set price(double? v) {
+    _price = v;
+    __markDirty('price');
   }
 
   User? _author;
   User? get author => _author;
   set author(User? v) {
     _author = v;
-    __dirtyMap['author'] = true;
+    __markDirty('author');
   }
 
   Book();
+
+  @override
+  String get entityClassName => 'Book';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "title":
         return _title;
+      case "price":
+        return _price;
       case "author":
         return _author;
       default:
@@ -267,6 +438,9 @@ class Book extends BaseModel {
       case "title":
         title = value;
         break;
+      case "price":
+        price = value;
+        break;
       case "author":
         author = value;
         break;
@@ -280,6 +454,7 @@ class Book extends BaseModel {
   Map<String, dynamic> toMap() {
     return {
       "title": _title,
+      "price": _price,
       "author": _author,
       ...super.toMap(),
     };
@@ -301,31 +476,41 @@ class User extends BaseModel {
   String? get name => _name;
   set name(String? v) {
     _name = v;
-    __dirtyMap['name'] = true;
+    __markDirty('name');
   }
 
   String? _loginName;
   String? get loginName => _loginName;
   set loginName(String? v) {
     _loginName = v;
-    __dirtyMap['loginName'] = true;
+    __markDirty('loginName');
   }
 
   String? _address;
   String? get address => _address;
   set address(String? v) {
     _address = v;
-    __dirtyMap['address'] = true;
+    __markDirty('address');
   }
 
   int? _age;
   int? get age => _age;
   set age(int? v) {
     _age = v;
-    __dirtyMap['age'] = true;
+    __markDirty('age');
+  }
+
+  List<_Book>? _books;
+  List<_Book>? get books => _books;
+  set books(List<_Book>? v) {
+    _books = v;
+    __markDirty('books');
   }
 
   User();
+
+  @override
+  String get entityClassName => 'User';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -338,6 +523,8 @@ class User extends BaseModel {
         return _address;
       case "age":
         return _age;
+      case "books":
+        return _books;
       default:
         return super
             .__getField(fieldName, errorOnNonExistField: errorOnNonExistField);
@@ -360,6 +547,9 @@ class User extends BaseModel {
       case "age":
         age = value;
         break;
+      case "books":
+        books = value;
+        break;
       default:
         super.__setField(fieldName, value,
             errorOnNonExistField: errorOnNonExistField);
@@ -373,6 +563,7 @@ class User extends BaseModel {
       "loginName": _loginName,
       "address": _address,
       "age": _age,
+      "books": _books,
       ...super.toMap(),
     };
   }
@@ -403,10 +594,13 @@ class Job extends BaseModel {
   String? get name => _name;
   set name(String? v) {
     _name = v;
-    __dirtyMap['name'] = true;
+    __markDirty('name');
   }
 
   Job();
+
+  @override
+  String get entityClassName => 'Job';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {

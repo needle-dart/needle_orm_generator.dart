@@ -1,12 +1,17 @@
 // ignore_for_file: unused_field, unused_element
 
 import 'package:needle_orm/needle_orm.dart';
+import 'package:needle_orm/spi.dart';
+import 'package:scope/scope.dart';
 
 part 'domain.g.dart'; // auto generated code
 part 'domain.part.dart'; // business logic code
 
 // all Class names and Field names must start with '_'
 // all business logic must be defined in file : 'domain.part.dart'
+
+final sqlExecutor = _SqlExecutor();
+final scopeKeyDefaultDs = ScopeKey<DataSource>('DataSource');
 
 @Entity()
 abstract class _BaseModel {
@@ -37,12 +42,14 @@ abstract class _BaseModel {
   _BaseModel();
 }
 
-@DB(name: "mysql_example_db")
 @Table()
-@Entity()
+@Entity(ds: "mysql_example_db")
 class _Book extends _BaseModel {
   @Column()
   String? _title;
+
+  @Column()
+  double? _price;
 
   @ManyToOne()
   _User? _author;
@@ -50,9 +57,11 @@ class _Book extends _BaseModel {
   _Book();
 }
 
-@DB(name: "mysql_example_db")
 @Table(name: 'tbl_user')
-@Entity(prePersist: 'beforeInsert', postPersist: 'afterInsert')
+@Entity(
+    ds: Entity.DEFAULT_DS,
+    prePersist: 'beforeInsert',
+    postPersist: 'afterInsert')
 class _User extends _BaseModel {
   @Column()
   String? _name;
@@ -66,10 +75,12 @@ class _User extends _BaseModel {
   @Column()
   int? _age;
 
+  @OneToMany()
+  List<_Book>? books;
+
   _User();
 }
 
-//@DB(name: "default")
 @Entity()
 class _Job extends _BaseModel {
   @Column()
