@@ -22,11 +22,15 @@ class NeedleOrmMetaInfoGenerator extends Generator {
       return '';
     }
 
+    var classes = elements.map((e) => e.element).whereType<ClassElement>();
+
     values.add(strModel);
-    values.add(strModelInspector);
+    values.add(strModelQuery);
+    values.add(strModelInspector(classes
+        .where((element) => !element.isAbstract)
+        .map((e) => e.name.removePrefix())));
     values.add(strSqlExecutor);
 
-    var classes = elements.map((e) => e.element).whereType<ClassElement>();
     for (var clz in classes) {
       var classGen = ClassMetaInfoGenerator(clz);
       values.add(classGen.generate());

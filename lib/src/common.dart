@@ -1,10 +1,21 @@
-const strModelInspector = '''
+String strModelInspector(Iterable<String> classes) {
+  var caseStmt =
+      classes.map((name) => "case '$name': return $name();").join('\n');
+  return '''
   class _ModelInspector extends ModelInspector<__Model> {
 
     String getEntityClassName(__Model obj) {
       return obj.entityClassName;
     }
 
+    dynamic getFieldValue(__Model obj, String fieldName) {
+      return obj.__getField(fieldName);
+    }
+
+    void setFieldValue(__Model obj, String fieldName, dynamic value) {
+      obj.__setField(fieldName, value);
+    }
+    
     Map<String, dynamic> getDirtyFields(__Model model) {
       var map = <String, dynamic>{};
       model.__dirtyFields.forEach((name) {
@@ -19,8 +30,18 @@ const strModelInspector = '''
       model.__isLoadedFromDb = true;
       model.__cleanDirty();
     }
+
+    @override
+    __Model newInstance(String entityClassName) {
+      switch (entityClassName) {
+        $caseStmt
+        default:
+          throw 'unknown class : \$entityClassName';
+      }
+    }
   }
   ''';
+}
 
 const strSqlExecutor = '''
   class _SqlExecutor extends SqlExecutor<__Model> {
@@ -121,5 +142,11 @@ const strModel = '''
     void __postRemove() {}
     void __postRemovePermanent() {}
     void __postLoad() {}
+  }
+  ''';
+
+const strModelQuery = '''
+  abstract class _BaseModelQuery<T extends __Model, D> extends BaseModelQuery<T, D> {
+    _BaseModelQuery() : super(sqlExecutor);
   }
   ''';

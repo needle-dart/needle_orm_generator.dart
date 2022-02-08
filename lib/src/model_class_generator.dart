@@ -126,11 +126,15 @@ class ClassInspector {
 
     var _abstract = classElement.isAbstract ? "abstract" : "";
     return '''
+    ${genModelQuery()}
+
     $_abstract class $name extends $_superClassName { 
 
       $fields
 
       $name(); 
+
+      static ${name}ModelQuery get Query => ${name}ModelQuery();
 
       @override String get entityClassName => '$name';
 
@@ -160,6 +164,15 @@ class ClassInspector {
       ${overridepostLoad()}
 
     }''';
+  }
+
+  String genModelQuery() {
+    return '''
+      class ${name}ModelQuery extends _BaseModelQuery<$name, int> {
+        @override
+        String get entityClassName => '$name';
+      }
+      ''';
   }
 
   String overrideEvent(String eventType, String eventHandler) {

@@ -92,9 +92,22 @@ abstract class __Model extends Model {
   void __postLoad() {}
 }
 
+abstract class _BaseModelQuery<T extends __Model, D>
+    extends BaseModelQuery<T, D> {
+  _BaseModelQuery() : super(sqlExecutor);
+}
+
 class _ModelInspector extends ModelInspector<__Model> {
   String getEntityClassName(__Model obj) {
     return obj.entityClassName;
+  }
+
+  dynamic getFieldValue(__Model obj, String fieldName) {
+    return obj.__getField(fieldName);
+  }
+
+  void setFieldValue(__Model obj, String fieldName, dynamic value) {
+    obj.__setField(fieldName, value);
   }
 
   Map<String, dynamic> getDirtyFields(__Model model) {
@@ -110,6 +123,20 @@ class _ModelInspector extends ModelInspector<__Model> {
     model.loadMap(m, errorOnNonExistField: false);
     model.__isLoadedFromDb = true;
     model.__cleanDirty();
+  }
+
+  @override
+  __Model newInstance(String entityClassName) {
+    switch (entityClassName) {
+      case 'Book':
+        return Book();
+      case 'User':
+        return User();
+      case 'Job':
+        return Job();
+      default:
+        throw 'unknown class : $entityClassName';
+    }
   }
 }
 
@@ -241,6 +268,11 @@ final _allOrmClasses = [
 // NeedleOrmModelGenerator
 // **************************************************************************
 
+class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
+  @override
+  String get entityClassName => 'BaseModel';
+}
+
 abstract class BaseModel extends __Model {
   int? _id;
   int? get id => _id;
@@ -299,6 +331,8 @@ abstract class BaseModel extends __Model {
   }
 
   BaseModel();
+
+  static BaseModelModelQuery get Query => BaseModelModelQuery();
 
   @override
   String get entityClassName => 'BaseModel';
@@ -389,6 +423,11 @@ abstract class BaseModel extends __Model {
   }
 }
 
+class BookModelQuery extends _BaseModelQuery<Book, int> {
+  @override
+  String get entityClassName => 'Book';
+}
+
 class Book extends BaseModel {
   String? _title;
   String? get title => _title;
@@ -412,6 +451,8 @@ class Book extends BaseModel {
   }
 
   Book();
+
+  static BookModelQuery get Query => BookModelQuery();
 
   @override
   String get entityClassName => 'Book';
@@ -471,6 +512,11 @@ class Book extends BaseModel {
   }
 }
 
+class UserModelQuery extends _BaseModelQuery<User, int> {
+  @override
+  String get entityClassName => 'User';
+}
+
 class User extends BaseModel {
   String? _name;
   String? get name => _name;
@@ -508,6 +554,8 @@ class User extends BaseModel {
   }
 
   User();
+
+  static UserModelQuery get Query => UserModelQuery();
 
   @override
   String get entityClassName => 'User';
@@ -589,6 +637,11 @@ class User extends BaseModel {
   }
 }
 
+class JobModelQuery extends _BaseModelQuery<Job, int> {
+  @override
+  String get entityClassName => 'Job';
+}
+
 class Job extends BaseModel {
   String? _name;
   String? get name => _name;
@@ -598,6 +651,8 @@ class Job extends BaseModel {
   }
 
   Job();
+
+  static JobModelQuery get Query => JobModelQuery();
 
   @override
   String get entityClassName => 'Job';
