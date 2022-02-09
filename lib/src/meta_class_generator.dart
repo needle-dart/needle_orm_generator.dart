@@ -94,7 +94,7 @@ class FieldMetaInfoGenerator {
         .map((e) => e.toSource().substring(1) + ',')
         .join('\n');
     return '''
-      OrmMetaInfoField('$name', '$type', ormAnnotations: [
+      OrmMetaInfoField('$name', '${type.removePrefix()}', ormAnnotations: [
                 $annots
               ])
       ''';

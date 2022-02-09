@@ -274,13 +274,21 @@ class ClassInspector {
       }''';
   }
 
+  TypeChecker tsChecker = TypeChecker.fromRuntime(DateTime);
+
+  String _toMap(FieldElement field) {
+    var isDate = field.type.toString().startsWith("DateTime");
+    var toStr = isDate ? '?.toIso8601String()' : '';
+    return '''"${field.name.removePrefix()}": _${field.name.removePrefix()}$toStr,''';
+  }
+
   String overrideToMap(ClassElement clazz) {
     var superStmt = isTopClass ? "" : "...super.toMap(),";
     return '''
       @override
         Map<String, dynamic> toMap() {
           return {
-            ${clazz.fields.map((e) => '"${e.name.removePrefix()}": _${e.name.removePrefix()},').join('\n')} 
+            ${clazz.fields.map(_toMap).join('\n')} 
             ${superStmt}
           };
         }''';
