@@ -70,6 +70,9 @@ String strModelInspector(Iterable<String> classes) {
       }
     }
   }
+
+  final _ModelInspector _modelInspector = _ModelInspector();
+
   ''';
 }
 
@@ -86,6 +89,9 @@ const strSqlExecutor = '''
       return ds.execute(tableName, query, substitutionValues, returningFields);
     }
   }
+
+  final sqlExecutor = _SqlExecutor();
+
   ''';
 
 const strModel = '''

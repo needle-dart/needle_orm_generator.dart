@@ -66,7 +66,7 @@ class ClassMetaInfoGenerator {
     return '''
       class $metaClassName extends OrmMetaInfoClass {
         $metaClassName()
-            : super('$name',
+            : super('$name', _modelInspector,
                   isAbstract: $isAbstract,
                   superClassName: '$superClassName',
                   ormAnnotations: [
