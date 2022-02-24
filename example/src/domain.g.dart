@@ -161,6 +161,8 @@ class _ModelInspector extends ModelInspector<__Model> {
   }
 }
 
+final _ModelInspector _modelInspector = _ModelInspector();
+
 class _SqlExecutor extends SqlExecutor<__Model> {
   _SqlExecutor() : super(_ModelInspector());
 
@@ -174,9 +176,11 @@ class _SqlExecutor extends SqlExecutor<__Model> {
   }
 }
 
+final sqlExecutor = _SqlExecutor();
+
 class OrmMetaInfoBaseModel extends OrmMetaInfoClass {
   OrmMetaInfoBaseModel()
-      : super('BaseModel',
+      : super('BaseModel', _modelInspector,
             isAbstract: true,
             superClassName: 'Object',
             ormAnnotations: [
@@ -212,7 +216,7 @@ class OrmMetaInfoBaseModel extends OrmMetaInfoClass {
 
 class OrmMetaInfoBook extends OrmMetaInfoClass {
   OrmMetaInfoBook()
-      : super('Book',
+      : super('Book', _modelInspector,
             isAbstract: false,
             superClassName: 'BaseModel',
             ormAnnotations: [
@@ -234,7 +238,7 @@ class OrmMetaInfoBook extends OrmMetaInfoClass {
 
 class OrmMetaInfoUser extends OrmMetaInfoClass {
   OrmMetaInfoUser()
-      : super('User',
+      : super('User', _modelInspector,
             isAbstract: false,
             superClassName: 'BaseModel',
             ormAnnotations: [
@@ -265,7 +269,7 @@ class OrmMetaInfoUser extends OrmMetaInfoClass {
 
 class OrmMetaInfoJob extends OrmMetaInfoClass {
   OrmMetaInfoJob()
-      : super('Job',
+      : super('Job', _modelInspector,
             isAbstract: false,
             superClassName: 'BaseModel',
             ormAnnotations: [

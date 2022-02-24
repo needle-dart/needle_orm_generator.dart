@@ -10,7 +10,6 @@ part 'domain.part.dart'; // business logic code
 // all Class names and Field names must start with '_'
 // all business logic must be defined in file : 'domain.part.dart'
 
-final sqlExecutor = _SqlExecutor();
 final scopeKeyDefaultDs = ScopeKey<DataSource>('DataSource');
 
 @Entity()
