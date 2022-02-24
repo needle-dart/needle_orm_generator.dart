@@ -136,8 +136,6 @@ class ClassInspector {
 
       static ${name}ModelQuery get Query => ${name}ModelQuery();
 
-      @override String get entityClassName => '$name';
-
       ${overrideGetField(classElement)}
       ${overrideSetField(classElement)}
 

@@ -75,7 +75,7 @@ class _User extends _BaseModel {
   @Column()
   int? _age;
 
-  @OneToMany()
+  @OneToMany(mappedBy: "_author")
   List<_Book>? books;
 
   _User();

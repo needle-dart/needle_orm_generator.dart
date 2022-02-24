@@ -1,21 +1,50 @@
 String strModelInspector(Iterable<String> classes) {
-  var caseStmt =
+  var metaInfoCaseStmt = classes
+      .map((name) => "case '$name': return OrmMetaInfo$name();")
+      .join('\n');
+
+  var newInstanceCaseStmt =
       classes.map((name) => "case '$name': return $name();").join('\n');
+
+  var classNameStmt =
+      classes.map((name) => "if (obj is $name) return '$name';").join('\n');
+
   return '''
   class _ModelInspector extends ModelInspector<__Model> {
 
+
+    @override
     String getEntityClassName(__Model obj) {
-      return obj.entityClassName;
+      $classNameStmt
+      throw 'unknown entity : \$obj';
     }
 
+    @override
+    get allOrmMetaInfoClasses => _allOrmClasses;
+    
+    @override
+    OrmMetaInfoClass? metaInfo(String entityClassName) {
+      var list = _allOrmClasses
+          .where((element) => element.name == entityClassName)
+          .toList();
+      if (list.isNotEmpty) {
+        return list.first;
+      }
+      return null;
+    }
+
+
+    @override
     dynamic getFieldValue(__Model obj, String fieldName) {
       return obj.__getField(fieldName);
     }
 
+    @override
     void setFieldValue(__Model obj, String fieldName, dynamic value) {
       obj.__setField(fieldName, value);
     }
     
+    @override
     Map<String, dynamic> getDirtyFields(__Model model) {
       var map = <String, dynamic>{};
       model.__dirtyFields.forEach((name) {
@@ -24,6 +53,7 @@ String strModelInspector(Iterable<String> classes) {
       return map;
     }
 
+    @override
     void loadEntity(__Model model, Map<String, dynamic> m,
         {errorOnNonExistField: false}) {
       model.loadMap(m, errorOnNonExistField: false);
@@ -34,7 +64,7 @@ String strModelInspector(Iterable<String> classes) {
     @override
     __Model newInstance(String entityClassName) {
       switch (entityClassName) {
-        $caseStmt
+        $newInstanceCaseStmt
         default:
           throw 'unknown class : \$entityClassName';
       }
@@ -45,7 +75,7 @@ String strModelInspector(Iterable<String> classes) {
 
 const strSqlExecutor = '''
   class _SqlExecutor extends SqlExecutor<__Model> {
-    _SqlExecutor() : super(_ModelInspector(), _allOrmClasses);
+    _SqlExecutor() : super(_ModelInspector());
 
     @override
     Future<List<List>> query(
@@ -62,7 +92,6 @@ const strModel = '''
   abstract class __Model extends Model {
     // abstract begin
 
-    String get entityClassName;
     String get __tableName;
     String? get __idFieldName;
 

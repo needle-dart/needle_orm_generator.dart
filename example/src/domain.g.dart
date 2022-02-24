@@ -9,7 +9,6 @@ part of 'domain.dart';
 abstract class __Model extends Model {
   // abstract begin
 
-  String get entityClassName;
   String get __tableName;
   String? get __idFieldName;
 
@@ -98,18 +97,39 @@ abstract class _BaseModelQuery<T extends __Model, D>
 }
 
 class _ModelInspector extends ModelInspector<__Model> {
+  @override
   String getEntityClassName(__Model obj) {
-    return obj.entityClassName;
+    if (obj is Book) return 'Book';
+    if (obj is User) return 'User';
+    if (obj is Job) return 'Job';
+    throw 'unknown entity : $obj';
   }
 
+  @override
+  get allOrmMetaInfoClasses => _allOrmClasses;
+
+  @override
+  OrmMetaInfoClass? metaInfo(String entityClassName) {
+    var list = _allOrmClasses
+        .where((element) => element.name == entityClassName)
+        .toList();
+    if (list.isNotEmpty) {
+      return list.first;
+    }
+    return null;
+  }
+
+  @override
   dynamic getFieldValue(__Model obj, String fieldName) {
     return obj.__getField(fieldName);
   }
 
+  @override
   void setFieldValue(__Model obj, String fieldName, dynamic value) {
     obj.__setField(fieldName, value);
   }
 
+  @override
   Map<String, dynamic> getDirtyFields(__Model model) {
     var map = <String, dynamic>{};
     model.__dirtyFields.forEach((name) {
@@ -118,6 +138,7 @@ class _ModelInspector extends ModelInspector<__Model> {
     return map;
   }
 
+  @override
   void loadEntity(__Model model, Map<String, dynamic> m,
       {errorOnNonExistField: false}) {
     model.loadMap(m, errorOnNonExistField: false);
@@ -141,7 +162,7 @@ class _ModelInspector extends ModelInspector<__Model> {
 }
 
 class _SqlExecutor extends SqlExecutor<__Model> {
-  _SqlExecutor() : super(_ModelInspector(), _allOrmClasses);
+  _SqlExecutor() : super(_ModelInspector());
 
   @override
   Future<List<List>> query(
@@ -205,7 +226,7 @@ class OrmMetaInfoBook extends OrmMetaInfoClass {
               OrmMetaInfoField('price', 'double?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('author', '_User?', ormAnnotations: [
+              OrmMetaInfoField('author', 'User?', ormAnnotations: [
                 ManyToOne(),
               ]),
             ]);
@@ -237,7 +258,7 @@ class OrmMetaInfoUser extends OrmMetaInfoClass {
                 Column(),
               ]),
               OrmMetaInfoField('books', 'List<_Book>?', ormAnnotations: [
-                OneToMany(),
+                OneToMany(mappedBy: "_author"),
               ]),
             ]);
 }
@@ -335,9 +356,6 @@ abstract class BaseModel extends __Model {
   static BaseModelModelQuery get Query => BaseModelModelQuery();
 
   @override
-  String get entityClassName => 'BaseModel';
-
-  @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "id":
@@ -404,8 +422,8 @@ abstract class BaseModel extends __Model {
       "id": _id,
       "version": _version,
       "deleted": _deleted,
-      "createdAt": _createdAt,
-      "updatedAt": _updatedAt,
+      "createdAt": _createdAt?.toIso8601String(),
+      "updatedAt": _updatedAt?.toIso8601String(),
       "createdBy": _createdBy,
       "lastUpdatedBy": _lastUpdatedBy,
       "remark": _remark,
@@ -453,9 +471,6 @@ class Book extends BaseModel {
   Book();
 
   static BookModelQuery get Query => BookModelQuery();
-
-  @override
-  String get entityClassName => 'Book';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -558,9 +573,6 @@ class User extends BaseModel {
   static UserModelQuery get Query => UserModelQuery();
 
   @override
-  String get entityClassName => 'User';
-
-  @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
     switch (fieldName) {
       case "name":
@@ -653,9 +665,6 @@ class Job extends BaseModel {
   Job();
 
   static JobModelQuery get Query => JobModelQuery();
-
-  @override
-  String get entityClassName => 'Job';
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {

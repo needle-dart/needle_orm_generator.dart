@@ -69,9 +69,9 @@ extension OrmAnnotationConverter on ElementAnnotation {
       case 'WhoModified':
         return WhoModified();
       case 'OneToOne':
-        return OneToOne();
+        return toOneToOne();
       case 'OneToMany':
-        return OneToMany();
+        return toOneToMany();
       case 'ManyToOne':
         return ManyToOne();
       case 'ManyToMany':
@@ -121,5 +121,15 @@ extension OrmAnnotationConverter on ElementAnnotation {
   Table toTable() {
     assert(name == 'Table');
     return Table(name: stringValue('name'));
+  }
+
+  OneToMany toOneToMany() {
+    assert(name == 'OneToMany');
+    return OneToMany(mappedBy: stringValue('mappedBy'));
+  }
+
+  OneToOne toOneToOne() {
+    assert(name == 'OneToOne');
+    return OneToOne(mappedBy: stringValue('mappedBy'));
   }
 }
