@@ -1,8 +1,4 @@
 String strModelInspector(Iterable<String> classes) {
-  var metaInfoCaseStmt = classes
-      .map((name) => "case '$name': return OrmMetaInfo$name();")
-      .join('\n');
-
   var newInstanceCaseStmt =
       classes.map((name) => "case '$name': return $name();").join('\n');
 
@@ -14,18 +10,18 @@ String strModelInspector(Iterable<String> classes) {
 
 
     @override
-    String getEntityClassName(__Model obj) {
+    String getClassName(__Model obj) {
       $classNameStmt
       throw 'unknown entity : \$obj';
     }
 
     @override
-    get allOrmMetaInfoClasses => _allOrmClasses;
+    get allOrmMetaClasses => _allOrmClasses;
     
     @override
-    OrmMetaInfoClass? metaInfo(String entityClassName) {
+    OrmMetaClass? meta(String className) {
       var list = _allOrmClasses
-          .where((element) => element.name == entityClassName)
+          .where((element) => element.name == className)
           .toList();
       if (list.isNotEmpty) {
         return list.first;
@@ -54,7 +50,7 @@ String strModelInspector(Iterable<String> classes) {
     }
 
     @override
-    void loadEntity(__Model model, Map<String, dynamic> m,
+    void loadModel(__Model model, Map<String, dynamic> m,
         {errorOnNonExistField: false}) {
       model.loadMap(m, errorOnNonExistField: false);
       model.__isLoadedFromDb = true;
@@ -62,11 +58,11 @@ String strModelInspector(Iterable<String> classes) {
     }
 
     @override
-    __Model newInstance(String entityClassName) {
-      switch (entityClassName) {
+    __Model newInstance(String className) {
+      switch (className) {
         $newInstanceCaseStmt
         default:
-          throw 'unknown class : \$entityClassName';
+          throw 'unknown class : \$className';
       }
     }
   }

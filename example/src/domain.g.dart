@@ -98,7 +98,7 @@ abstract class _BaseModelQuery<T extends __Model, D>
 
 class _ModelInspector extends ModelInspector<__Model> {
   @override
-  String getEntityClassName(__Model obj) {
+  String getClassName(__Model obj) {
     if (obj is Book) return 'Book';
     if (obj is User) return 'User';
     if (obj is Job) return 'Job';
@@ -106,13 +106,12 @@ class _ModelInspector extends ModelInspector<__Model> {
   }
 
   @override
-  get allOrmMetaInfoClasses => _allOrmClasses;
+  get allOrmMetaClasses => _allOrmClasses;
 
   @override
-  OrmMetaInfoClass? metaInfo(String entityClassName) {
-    var list = _allOrmClasses
-        .where((element) => element.name == entityClassName)
-        .toList();
+  OrmMetaClass? meta(String className) {
+    var list =
+        _allOrmClasses.where((element) => element.name == className).toList();
     if (list.isNotEmpty) {
       return list.first;
     }
@@ -139,7 +138,7 @@ class _ModelInspector extends ModelInspector<__Model> {
   }
 
   @override
-  void loadEntity(__Model model, Map<String, dynamic> m,
+  void loadModel(__Model model, Map<String, dynamic> m,
       {errorOnNonExistField: false}) {
     model.loadMap(m, errorOnNonExistField: false);
     model.__isLoadedFromDb = true;
@@ -147,8 +146,8 @@ class _ModelInspector extends ModelInspector<__Model> {
   }
 
   @override
-  __Model newInstance(String entityClassName) {
-    switch (entityClassName) {
+  __Model newInstance(String className) {
+    switch (className) {
       case 'Book':
         return Book();
       case 'User':
@@ -156,7 +155,7 @@ class _ModelInspector extends ModelInspector<__Model> {
       case 'Job':
         return Job();
       default:
-        throw 'unknown class : $entityClassName';
+        throw 'unknown class : $className';
     }
   }
 }
@@ -178,7 +177,7 @@ class _SqlExecutor extends SqlExecutor<__Model> {
 
 final sqlExecutor = _SqlExecutor();
 
-class OrmMetaInfoBaseModel extends OrmMetaInfoClass {
+class OrmMetaInfoBaseModel extends OrmMetaClass {
   OrmMetaInfoBaseModel()
       : super('BaseModel', _modelInspector,
             isAbstract: true,
@@ -187,34 +186,34 @@ class OrmMetaInfoBaseModel extends OrmMetaInfoClass {
               Entity(),
             ],
             fields: [
-              OrmMetaInfoField('id', 'int?', ormAnnotations: [
+              OrmMetaField('id', 'int?', ormAnnotations: [
                 ID(),
               ]),
-              OrmMetaInfoField('version', 'int?', ormAnnotations: [
+              OrmMetaField('version', 'int?', ormAnnotations: [
                 Version(),
               ]),
-              OrmMetaInfoField('deleted', 'bool?', ormAnnotations: [
+              OrmMetaField('deleted', 'bool?', ormAnnotations: [
                 SoftDelete(),
               ]),
-              OrmMetaInfoField('createdAt', 'DateTime?', ormAnnotations: [
+              OrmMetaField('createdAt', 'DateTime?', ormAnnotations: [
                 WhenCreated(),
               ]),
-              OrmMetaInfoField('updatedAt', 'DateTime?', ormAnnotations: [
+              OrmMetaField('updatedAt', 'DateTime?', ormAnnotations: [
                 WhenModified(),
               ]),
-              OrmMetaInfoField('createdBy', 'String?', ormAnnotations: [
+              OrmMetaField('createdBy', 'String?', ormAnnotations: [
                 WhoCreated(),
               ]),
-              OrmMetaInfoField('lastUpdatedBy', 'String?', ormAnnotations: [
+              OrmMetaField('lastUpdatedBy', 'String?', ormAnnotations: [
                 WhoModified(),
               ]),
-              OrmMetaInfoField('remark', 'String?', ormAnnotations: [
+              OrmMetaField('remark', 'String?', ormAnnotations: [
                 Column(),
               ]),
             ]);
 }
 
-class OrmMetaInfoBook extends OrmMetaInfoClass {
+class OrmMetaInfoBook extends OrmMetaClass {
   OrmMetaInfoBook()
       : super('Book', _modelInspector,
             isAbstract: false,
@@ -224,19 +223,19 @@ class OrmMetaInfoBook extends OrmMetaInfoClass {
               Entity(ds: "mysql_example_db"),
             ],
             fields: [
-              OrmMetaInfoField('title', 'String?', ormAnnotations: [
+              OrmMetaField('title', 'String?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('price', 'double?', ormAnnotations: [
+              OrmMetaField('price', 'double?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('author', 'User?', ormAnnotations: [
+              OrmMetaField('author', 'User?', ormAnnotations: [
                 ManyToOne(),
               ]),
             ]);
 }
 
-class OrmMetaInfoUser extends OrmMetaInfoClass {
+class OrmMetaInfoUser extends OrmMetaClass {
   OrmMetaInfoUser()
       : super('User', _modelInspector,
             isAbstract: false,
@@ -249,25 +248,25 @@ class OrmMetaInfoUser extends OrmMetaInfoClass {
                   postPersist: 'afterInsert'),
             ],
             fields: [
-              OrmMetaInfoField('name', 'String?', ormAnnotations: [
+              OrmMetaField('name', 'String?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('loginName', 'String?', ormAnnotations: [
+              OrmMetaField('loginName', 'String?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('address', 'String?', ormAnnotations: [
+              OrmMetaField('address', 'String?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('age', 'int?', ormAnnotations: [
+              OrmMetaField('age', 'int?', ormAnnotations: [
                 Column(),
               ]),
-              OrmMetaInfoField('books', 'List<_Book>?', ormAnnotations: [
+              OrmMetaField('books', 'List<_Book>?', ormAnnotations: [
                 OneToMany(mappedBy: "_author"),
               ]),
             ]);
 }
 
-class OrmMetaInfoJob extends OrmMetaInfoClass {
+class OrmMetaInfoJob extends OrmMetaClass {
   OrmMetaInfoJob()
       : super('Job', _modelInspector,
             isAbstract: false,
@@ -276,7 +275,7 @@ class OrmMetaInfoJob extends OrmMetaInfoClass {
               Entity(),
             ],
             fields: [
-              OrmMetaInfoField('name', 'String?', ormAnnotations: [
+              OrmMetaField('name', 'String?', ormAnnotations: [
                 Column(),
               ]),
             ]);
@@ -295,7 +294,7 @@ final _allOrmClasses = [
 
 class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
   @override
-  String get entityClassName => 'BaseModel';
+  String get className => 'BaseModel';
 }
 
 abstract class BaseModel extends __Model {
@@ -447,7 +446,7 @@ abstract class BaseModel extends __Model {
 
 class BookModelQuery extends _BaseModelQuery<Book, int> {
   @override
-  String get entityClassName => 'Book';
+  String get className => 'Book';
 }
 
 class Book extends BaseModel {
@@ -533,7 +532,7 @@ class Book extends BaseModel {
 
 class UserModelQuery extends _BaseModelQuery<User, int> {
   @override
-  String get entityClassName => 'User';
+  String get className => 'User';
 }
 
 class User extends BaseModel {
@@ -655,7 +654,7 @@ class User extends BaseModel {
 
 class JobModelQuery extends _BaseModelQuery<Job, int> {
   @override
-  String get entityClassName => 'Job';
+  String get className => 'Job';
 }
 
 class Job extends BaseModel {

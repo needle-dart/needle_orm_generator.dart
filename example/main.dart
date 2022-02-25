@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:needle_orm/needle_orm.dart';
 import 'package:scope/scope.dart';
 
@@ -12,6 +14,11 @@ class MockDataSource extends DataSource {
     print('[sql] $sql [bindings: $substitutionValues]');
     return List<List>.empty();
     // throw UnimplementedError();
+  }
+
+  @override
+  Future<T> transaction<T>(FutureOr<T> Function(DataSource p1) f) {
+    throw UnimplementedError();
   }
 }
 

@@ -168,7 +168,7 @@ class ClassInspector {
     return '''
       class ${name}ModelQuery extends _BaseModelQuery<$name, int> {
         @override
-        String get entityClassName => '$name';
+        String get className => '$name';
       }
       ''';
   }

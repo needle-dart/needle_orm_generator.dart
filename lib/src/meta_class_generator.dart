@@ -64,7 +64,7 @@ class ClassMetaInfoGenerator {
         .map((e) => e.toSource().substring(1) + ',')
         .join('\n');
     return '''
-      class $metaClassName extends OrmMetaInfoClass {
+      class $metaClassName extends OrmMetaClass {
         $metaClassName()
             : super('$name', _modelInspector,
                   isAbstract: $isAbstract,
@@ -94,7 +94,7 @@ class FieldMetaInfoGenerator {
         .map((e) => e.toSource().substring(1) + ',')
         .join('\n');
     return '''
-      OrmMetaInfoField('$name', '${type.removePrefix()}', ormAnnotations: [
+      OrmMetaField('$name', '${type.removePrefix()}', ormAnnotations: [
                 $annots
               ])
       ''';
