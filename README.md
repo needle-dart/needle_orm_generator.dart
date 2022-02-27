@@ -128,6 +128,16 @@ void main() {
     ..author = user
     ..title = 'Dart'
     ..insert();
+
+  Book.Query
+    ..title.startsWith('dart')
+    ..price.between(10.0, 20)
+    ..author.apply((author) {
+      author
+        ..age.ge(18)
+        ..address.startsWith('China Shanghai');
+    })
+    ..findAll();
 }
 
 ```
