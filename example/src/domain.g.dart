@@ -295,6 +295,15 @@ final _allOrmClasses = [
 class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
   @override
   String get className => 'BaseModel';
+
+  IntColumn id = IntColumn();
+  IntColumn version = IntColumn();
+  BoolColumn deleted = BoolColumn();
+  DateTimeColumn createdAt = DateTimeColumn();
+  DateTimeColumn updatedAt = DateTimeColumn();
+  StringColumn createdBy = StringColumn();
+  StringColumn lastUpdatedBy = StringColumn();
+  StringColumn remark = StringColumn();
 }
 
 abstract class BaseModel extends __Model {
@@ -444,9 +453,13 @@ abstract class BaseModel extends __Model {
   }
 }
 
-class BookModelQuery extends _BaseModelQuery<Book, int> {
+class BookModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Book';
+
+  StringColumn title = StringColumn();
+  DoubleColumn price = DoubleColumn();
+  late UserModelQuery author;
 }
 
 class Book extends BaseModel {
@@ -530,9 +543,15 @@ class Book extends BaseModel {
   }
 }
 
-class UserModelQuery extends _BaseModelQuery<User, int> {
+class UserModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'User';
+
+  StringColumn name = StringColumn();
+  StringColumn loginName = StringColumn();
+  StringColumn address = StringColumn();
+  IntColumn age = IntColumn();
+  late BookModelQuery books;
 }
 
 class User extends BaseModel {
@@ -564,9 +583,9 @@ class User extends BaseModel {
     __markDirty('age');
   }
 
-  List<_Book>? _books;
-  List<_Book>? get books => _books;
-  set books(List<_Book>? v) {
+  List<Book>? _books;
+  List<Book>? get books => _books;
+  set books(List<Book>? v) {
     _books = v;
     __markDirty('books');
   }
@@ -652,9 +671,11 @@ class User extends BaseModel {
   }
 }
 
-class JobModelQuery extends _BaseModelQuery<Job, int> {
+class JobModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Job';
+
+  StringColumn name = StringColumn();
 }
 
 class Job extends BaseModel {

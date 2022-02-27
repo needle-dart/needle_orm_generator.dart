@@ -37,13 +37,22 @@ void test() {
 
   Book.Query.findAll();
 
-/* 
+  // just a demo for how to use query:
   Book.Query
-        ..name ~ 'dart'
-        ..age > 10
-        ..(author..name = 'john'
-                 ..age > 30)
- */
+    ..apply((query) {
+      // @TODO init late query fields, should be removed in later release
+      UserModelQuery userModelQuery = UserModelQuery();
+      query.author = userModelQuery;
+      userModelQuery.books = query;
+    })
+    ..title.startsWith('dart')
+    ..price.between(10.0, 20)
+    ..author.apply((author) {
+      author
+        ..age.ge(18)
+        ..address.startsWith('China Shanghai');
+    })
+    ..findAll();
 }
 
 class MockDataSource extends DataSource {

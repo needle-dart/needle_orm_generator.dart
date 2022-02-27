@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/src/builder/build_step.dart';
 import 'package:needle_orm/needle_orm.dart';
-import 'package:needle_orm_generator/src/common.dart';
 import 'package:source_gen/source_gen.dart';
 import 'helper.dart';
 
@@ -65,17 +64,42 @@ class FieldInspector {
   }
 
   String generate() {
-    var type = fieldElement.type.toString().removePrefix();
-
     return '''
-      $type _$name ;
-      $type get $name => _$name;
-      set $name($type v) {
+      $_cleanType _$name ;
+      $_cleanType get $name => _$name;
+      set $name($_cleanType v) {
         _$name = v;
         __markDirty('$name');
       }
     ''';
   }
+
+  String generateQuery() {
+    if (_isSimpleType) {
+      var queryClassName = ColumnQuery.classNameForType(_queryCleanType);
+      return '$queryClassName $name = $queryClassName();';
+    } else {
+      var queryClassName = '${_queryCleanType}ModelQuery';
+      //@TODO late : prevent cycle dependency, should be removed in later release
+      return 'late $queryClassName $name ;';
+    }
+  }
+
+  static List<String> simpleTypes = [
+    'int',
+    'double',
+    'bool',
+    'String',
+    'DateTime'
+  ];
+
+  bool get _isSimpleType => simpleTypes.indexOf(_queryCleanType) >= 0;
+
+  String get _cleanType =>
+      fieldElement.type.toString().replaceAll(RegExp('_'), '');
+
+  String get _queryCleanType =>
+      fieldElement.type.toString().replaceAll(RegExp('(List)|[<>_?]+'), '');
 }
 
 class ClassInspector {
@@ -165,10 +189,19 @@ class ClassInspector {
   }
 
   String genModelQuery() {
+    var fields = classElement.fields
+        .map((f) => FieldInspector(f).generateQuery())
+        .join('\n');
+
+    var queryExtendsClass = name == 'BaseModel'
+        ? '_BaseModelQuery<$name, int>'
+        : 'BaseModelModelQuery';
     return '''
-      class ${name}ModelQuery extends _BaseModelQuery<$name, int> {
+      class ${name}ModelQuery extends $queryExtendsClass {
         @override
         String get className => '$name';
+
+        $fields
       }
       ''';
   }
