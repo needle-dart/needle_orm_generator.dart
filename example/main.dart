@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:needle_orm/needle_orm.dart';
+import 'package:needle_orm/spi.dart';
 import 'package:scope/scope.dart';
 
 import 'src/domain.dart';
@@ -38,22 +39,40 @@ void test() {
   Book.Query.findAll();
 
   // just a demo for how to use query:
-  Book.Query
-    ..apply((query) {
-      // @TODO init late query fields, should be removed in later release
-      UserModelQuery userModelQuery = UserModelQuery();
-      query.author = userModelQuery;
-      userModelQuery.books = query;
-    })
+  var q = Book.Query
     ..title.startsWith('dart')
     ..price.between(10.0, 20)
     ..author.apply((author) {
       author
         ..age.ge(18)
         ..address.startsWith('China Shanghai');
-    })
-    ..findAll();
+    });
+
+  print('-------show conditions begin ----------');
+  q.columns.forEach((c) {
+    debugCondition(c);
+  });
+  print('-------show conditions end ----------');
+
+  q.findAll();
 }
+
+debugCondition(c) {
+  if (c is ColumnQuery) {
+    c.conditions.forEach(print);
+  } else if (c is BaseModelQuery) {
+    if (cache.contains(c)) {
+      // prevent circle reference
+      return;
+    }
+    cache.add(c);
+    c.columns.forEach((element) {
+      debugCondition(element);
+    });
+  }
+}
+
+Set<BaseModelQuery> cache = {};
 
 class MockDataSource extends DataSource {
   MockDataSource() : super(DatabaseType.PostgreSQL, '10.0');

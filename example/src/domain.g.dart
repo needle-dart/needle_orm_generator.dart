@@ -93,7 +93,20 @@ abstract class __Model extends Model {
 
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
-  _BaseModelQuery() : super(sqlExecutor);
+  _BaseModelQuery({BaseModelQuery? topQuery})
+      : super(sqlExecutor, topQuery: topQuery);
+
+  BaseModelQuery createQuery(String name) {
+    switch (name) {
+      case 'Book':
+        return BookModelQuery(topQuery: this);
+      case 'User':
+        return UserModelQuery(topQuery: this);
+      case 'Job':
+        return JobModelQuery(topQuery: this);
+    }
+    throw 'Unknow Query Name: $name';
+  }
 }
 
 class _ModelInspector extends ModelInspector<__Model> {
@@ -296,14 +309,27 @@ class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
   @override
   String get className => 'BaseModel';
 
-  IntColumn id = IntColumn();
-  IntColumn version = IntColumn();
-  BoolColumn deleted = BoolColumn();
-  DateTimeColumn createdAt = DateTimeColumn();
-  DateTimeColumn updatedAt = DateTimeColumn();
-  StringColumn createdBy = StringColumn();
-  StringColumn lastUpdatedBy = StringColumn();
-  StringColumn remark = StringColumn();
+  BaseModelModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+
+  IntColumn id = IntColumn("id");
+  IntColumn version = IntColumn("version");
+  BoolColumn deleted = BoolColumn("deleted");
+  DateTimeColumn createdAt = DateTimeColumn("createdAt");
+  DateTimeColumn updatedAt = DateTimeColumn("updatedAt");
+  StringColumn createdBy = StringColumn("createdBy");
+  StringColumn lastUpdatedBy = StringColumn("lastUpdatedBy");
+  StringColumn remark = StringColumn("remark");
+
+  List get columns => [
+        id,
+        version,
+        deleted,
+        createdAt,
+        updatedAt,
+        createdBy,
+        lastUpdatedBy,
+        remark
+      ];
 }
 
 abstract class BaseModel extends __Model {
@@ -457,9 +483,13 @@ class BookModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Book';
 
-  StringColumn title = StringColumn();
-  DoubleColumn price = DoubleColumn();
-  late UserModelQuery author;
+  BookModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+
+  StringColumn title = StringColumn("title");
+  DoubleColumn price = DoubleColumn("price");
+  UserModelQuery get author => topQuery.findQuery("User");
+
+  List get columns => [title, price, author];
 }
 
 class Book extends BaseModel {
@@ -547,11 +577,15 @@ class UserModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'User';
 
-  StringColumn name = StringColumn();
-  StringColumn loginName = StringColumn();
-  StringColumn address = StringColumn();
-  IntColumn age = IntColumn();
-  late BookModelQuery books;
+  UserModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+
+  StringColumn name = StringColumn("name");
+  StringColumn loginName = StringColumn("loginName");
+  StringColumn address = StringColumn("address");
+  IntColumn age = IntColumn("age");
+  BookModelQuery get books => topQuery.findQuery("Book");
+
+  List get columns => [name, loginName, address, age, books];
 }
 
 class User extends BaseModel {
@@ -675,7 +709,11 @@ class JobModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Job';
 
-  StringColumn name = StringColumn();
+  JobModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+
+  StringColumn name = StringColumn("name");
+
+  List get columns => [name];
 }
 
 class Job extends BaseModel {

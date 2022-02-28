@@ -175,9 +175,3 @@ const strModel = '''
     void __postLoad() {}
   }
   ''';
-
-const strModelQuery = '''
-  abstract class _BaseModelQuery<T extends __Model, D> extends BaseModelQuery<T, D> {
-    _BaseModelQuery() : super(sqlExecutor);
-  }
-  ''';

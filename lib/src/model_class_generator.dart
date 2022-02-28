@@ -77,11 +77,12 @@ class FieldInspector {
   String generateQuery() {
     if (_isSimpleType) {
       var queryClassName = ColumnQuery.classNameForType(_queryCleanType);
-      return '$queryClassName $name = $queryClassName();';
+      return '$queryClassName $name = $queryClassName("$name");';
     } else {
       var queryClassName = '${_queryCleanType}ModelQuery';
       //@TODO late : prevent cycle dependency, should be removed in later release
-      return 'late $queryClassName $name ;';
+      // UserModelQuery get author => topQuery.findQuery('User');
+      return '$queryClassName get $name => topQuery.findQuery("$_queryCleanType");';
     }
   }
 
@@ -193,6 +194,9 @@ class ClassInspector {
         .map((f) => FieldInspector(f).generateQuery())
         .join('\n');
 
+    var columns =
+        classElement.fields.map((f) => FieldInspector(f).name).join(',');
+
     var queryExtendsClass = name == 'BaseModel'
         ? '_BaseModelQuery<$name, int>'
         : 'BaseModelModelQuery';
@@ -201,7 +205,12 @@ class ClassInspector {
         @override
         String get className => '$name';
 
+        ${name}ModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+
         $fields
+
+        List get columns => [$columns];
+
       }
       ''';
   }
