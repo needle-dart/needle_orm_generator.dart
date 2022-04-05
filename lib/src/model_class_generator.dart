@@ -74,16 +74,16 @@ class FieldInspector {
     ''';
   }
 
-  String generateQuery() {
-    if (_isSimpleType) {
-      var queryClassName = ColumnQuery.classNameForType(_queryCleanType);
-      return '$queryClassName $name = $queryClassName("$name");';
-    } else {
-      var queryClassName = '${_queryCleanType}ModelQuery';
-      //@TODO late : prevent cycle dependency, should be removed in later release
-      // UserModelQuery get author => topQuery.findQuery('User');
-      return '$queryClassName get $name => topQuery.findQuery("$_queryCleanType");';
-    }
+  String generateColumnQuery() {
+    var queryClassName = ColumnQuery.classNameForType(_queryCleanType);
+    return '$queryClassName $name = $queryClassName("$name");';
+  }
+
+  String generateJoin() {
+    var queryClassName = '${_queryCleanType}ModelQuery';
+    //@TODO late : prevent cycle dependency, should be removed in later release
+    // UserModelQuery get author => topQuery.findQuery('User');
+    return '$queryClassName get $name => topQuery.findQuery("$_queryCleanType","$name");';
   }
 
   static List<String> simpleTypes = [
@@ -190,26 +190,35 @@ class ClassInspector {
   }
 
   String genModelQuery() {
-    var fields = classElement.fields
-        .map((f) => FieldInspector(f).generateQuery())
+    var _fields = classElement.fields.map((f) => FieldInspector(f));
+
+    var fields = _fields
+        .map(
+            (f) => f._isSimpleType ? f.generateColumnQuery() : f.generateJoin())
         .join('\n');
 
     var columns =
-        classElement.fields.map((f) => FieldInspector(f).name).join(',');
+        _fields.where((f) => f._isSimpleType).map((e) => e.name).join(',');
+
+    var joins =
+        _fields.where((f) => !f._isSimpleType).map((e) => e.name).join(',');
 
     var queryExtendsClass = name == 'BaseModel'
         ? '_BaseModelQuery<$name, int>'
         : 'BaseModelModelQuery';
+
     return '''
       class ${name}ModelQuery extends $queryExtendsClass {
         @override
         String get className => '$name';
 
-        ${name}ModelQuery({_BaseModelQuery? topQuery}) : super(topQuery: topQuery);
+        ${name}ModelQuery({_BaseModelQuery? topQuery, String? propName}) : super(topQuery: topQuery, propName: propName);
 
         $fields
 
-        List get columns => [$columns];
+        List<ColumnQuery> get columns => [$columns];
+
+        List<BaseModelQuery> get joins => [$joins];
 
       }
       ''';

@@ -47,17 +47,17 @@ class NeedleOrmMetaInfoGenerator extends Generator {
     var caseStmt = classes
         .where((element) => !element.isAbstract)
         .map((e) => e.name.removePrefix())
-        .map(
-            (name) => "case '$name': return ${name}ModelQuery(topQuery: this);")
+        .map((name) =>
+            "case '$name': return ${name}ModelQuery(topQuery: this, propName: propName);")
         .join("\n");
 
     return """
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
-  _BaseModelQuery({BaseModelQuery? topQuery})
-      : super(sqlExecutor, topQuery: topQuery);
+  _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
+      : super(sqlExecutor, topQuery: topQuery, propName: propName);
 
-  BaseModelQuery createQuery(String name) {
+  BaseModelQuery createQuery(String name, String propName) {
     switch (name) {
       $caseStmt
     }

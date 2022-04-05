@@ -48,13 +48,16 @@ void test() {
         ..address.startsWith('China Shanghai');
     });
 
+  print('');
   print('-------show conditions begin ----------');
   q.columns.forEach((c) {
     debugCondition(c);
   });
   print('-------show conditions end ----------');
+  print('');
 
-  q.findAll();
+  // q.findAll();
+  q.findList();
 }
 
 debugCondition(c) {
