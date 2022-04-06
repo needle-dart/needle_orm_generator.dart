@@ -1,7 +1,6 @@
 // ignore_for_file: unused_field, unused_element
 
 import 'package:needle_orm/needle_orm.dart';
-import 'package:needle_orm/spi.dart';
 import 'package:scope/scope.dart';
 
 part 'domain.g.dart'; // auto generated code

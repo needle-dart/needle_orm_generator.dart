@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:needle_orm/needle_orm.dart';
-import 'package:needle_orm/spi.dart';
 import 'package:scope/scope.dart';
 
 import 'src/domain.dart';
