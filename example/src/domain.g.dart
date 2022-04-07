@@ -94,7 +94,8 @@ abstract class __Model extends Model {
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
-      : super(sqlExecutor, topQuery: topQuery, propName: propName);
+      : super(_modelInspector, sqlExecutor,
+            topQuery: topQuery, propName: propName);
 
   BaseModelQuery createQuery(String name, String propName) {
     switch (name) {

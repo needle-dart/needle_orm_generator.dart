@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:needle_orm/needle_orm.dart';
 import 'package:scope/scope.dart';
@@ -10,7 +11,7 @@ void main() {
   (Scope()..value<DataSource>(scopeKeyDefaultDs, ds)).run(test);
 }
 
-void test() {
+void test() async {
   var user = User();
 
   user
@@ -35,7 +36,8 @@ void test() {
     ..title = 'Dart'
     ..insert();
 
-  Book.Query.findAll();
+  var all = await Book.Query.findAll();
+  print(all.map((e) => e.toMap()).toList());
 
   // just a demo for how to use query:
   var q = Book.Query
@@ -56,7 +58,9 @@ void test() {
   print('');
 
   // q.findAll();
-  q.findList();
+  var books = await q.findList();
+
+  print(books.map((e) => e.toMap()));
 }
 
 debugCondition(c) {
@@ -82,9 +86,17 @@ class MockDataSource extends DataSource {
   Future<List<List>> execute(
       String tableName, String sql, Map<String, dynamic> substitutionValues,
       [List<String> returningFields = const []]) async {
-    print('[sql] $sql [bindings: $substitutionValues]');
+    print(
+        '[sql] [$tableName] $sql [bindings: $substitutionValues] [return: $returningFields]');
+    if (tableName == 'books') return _mockBook();
     return List<List>.empty();
     // throw UnimplementedError();
+  }
+
+  List<List> _mockBook() {
+    return [
+      ['Dart', 15.0, 200, 100, 1, false]
+    ];
   }
 
   @override

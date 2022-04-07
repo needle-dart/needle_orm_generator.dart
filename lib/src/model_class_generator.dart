@@ -327,8 +327,17 @@ class ClassInspector {
 
   String _toMap(FieldElement field) {
     var isDate = field.type.toString().startsWith("DateTime");
-    var toStr = isDate ? '?.toIso8601String()' : '';
+    var toStr = isDate
+        ? '?.toIso8601String()'
+        : isModel(field)
+            ? '?.toMap()'
+            : '';
     return '''"${field.name.removePrefix()}": _${field.name.removePrefix()}$toStr,''';
+  }
+
+  bool isModel(FieldElement field) {
+    return field.metadata.ormAnnotations().whereType<ManyToOne>().isNotEmpty ||
+        field.metadata.ormAnnotations().whereType<OneToOne>().isNotEmpty;
   }
 
   String overrideToMap(ClassElement clazz) {
