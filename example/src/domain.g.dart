@@ -46,15 +46,17 @@ abstract class __Model extends Model {
         .join(", ");
   }
 
+  BaseModelQuery get __query => _modelInspector.newQuery(className);
+
   void insert() {
     __prePersist();
-    sqlExecutor.insert(this);
+    __query.insert(this);
     __postPersist();
   }
 
   void update() {
     __preUpdate();
-    sqlExecutor.update(this);
+    __query.update(this);
     __postUpdate();
   }
 
@@ -70,13 +72,13 @@ abstract class __Model extends Model {
 
   void delete() {
     __preRemove();
-    sqlExecutor.delete(this);
+    __query.delete(this);
     __postRemove();
   }
 
   void deletePermanent() {
     __preRemovePermanent();
-    sqlExecutor.deletePermanent(this);
+    __query.deletePermanent(this);
     __postRemovePermanent();
   }
 
@@ -96,18 +98,6 @@ abstract class _BaseModelQuery<T extends __Model, D>
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
       : super(_modelInspector, sqlExecutor,
             topQuery: topQuery, propName: propName);
-
-  BaseModelQuery createQuery(String name, String propName) {
-    switch (name) {
-      case 'Book':
-        return BookModelQuery(topQuery: this, propName: propName);
-      case 'User':
-        return UserModelQuery(topQuery: this, propName: propName);
-      case 'Job':
-        return JobModelQuery(topQuery: this, propName: propName);
-    }
-    throw 'Unknow Query Name: $name';
-  }
 }
 
 class _ModelInspector extends ModelInspector<__Model> {
@@ -171,6 +161,18 @@ class _ModelInspector extends ModelInspector<__Model> {
       default:
         throw 'unknown class : $className';
     }
+  }
+
+  BaseModelQuery newQuery(String name) {
+    switch (name) {
+      case 'Book':
+        return BookModelQuery();
+      case 'User':
+        return UserModelQuery();
+      case 'Job':
+        return JobModelQuery();
+    }
+    throw 'Unknow Query Name: $name';
   }
 }
 
@@ -395,6 +397,9 @@ abstract class BaseModel extends __Model {
 
   BaseModel();
 
+  @override
+  String get className => 'BaseModel';
+
   static BaseModelModelQuery get Query => BaseModelModelQuery();
 
   @override
@@ -523,6 +528,9 @@ class Book extends BaseModel {
 
   Book();
 
+  @override
+  String get className => 'Book';
+
   static BookModelQuery get Query => BookModelQuery();
 
   @override
@@ -564,7 +572,7 @@ class Book extends BaseModel {
     return {
       "title": _title,
       "price": _price,
-      "author": _author,
+      "author": _author?.toMap(),
       ...super.toMap(),
     };
   }
@@ -635,6 +643,9 @@ class User extends BaseModel {
   }
 
   User();
+
+  @override
+  String get className => 'User';
 
   static UserModelQuery get Query => UserModelQuery();
 
@@ -738,6 +749,9 @@ class Job extends BaseModel {
   }
 
   Job();
+
+  @override
+  String get className => 'Job';
 
   static JobModelQuery get Query => JobModelQuery();
 

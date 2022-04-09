@@ -159,6 +159,8 @@ class ClassInspector {
 
       $name(); 
 
+      @override String get className => '$name';
+
       static ${name}ModelQuery get Query => ${name}ModelQuery();
 
       ${overrideGetField(classElement)}

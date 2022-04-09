@@ -57,12 +57,6 @@ abstract class _BaseModelQuery<T extends __Model, D>
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
       : super(_modelInspector, sqlExecutor, topQuery: topQuery, propName: propName);
 
-  BaseModelQuery createQuery(String name, String propName) {
-    switch (name) {
-      $caseStmt
-    }
-    throw 'Unknow Query Name: \$name';
-  }
 }
 """;
   }

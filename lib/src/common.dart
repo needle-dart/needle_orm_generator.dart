@@ -5,6 +5,10 @@ String strModelInspector(Iterable<String> classes) {
   var classNameStmt =
       classes.map((name) => "if (obj is $name) return '$name';").join('\n');
 
+  var caseQueryStmt = classes
+      .map((name) => "case '$name': return ${name}ModelQuery();")
+      .join("\n");
+
   return '''
   class _ModelInspector extends ModelInspector<__Model> {
 
@@ -64,6 +68,13 @@ String strModelInspector(Iterable<String> classes) {
         default:
           throw 'unknown class : \$className';
       }
+    }
+
+    BaseModelQuery newQuery(String name) {
+      switch (name) {
+        $caseQueryStmt
+      }
+      throw 'Unknow Query Name: \$name';
     }
   }
 
@@ -130,15 +141,17 @@ const strModel = '''
       return __dirtyFields.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
     }
 
+    BaseModelQuery get __query => _modelInspector.newQuery(className);
+
     void insert() {
       __prePersist();
-      sqlExecutor.insert(this);
+      __query.insert(this);
       __postPersist();
     }
 
     void update() {
       __preUpdate();
-      sqlExecutor.update(this);
+      __query.update(this);
       __postUpdate();
     }
 
@@ -154,13 +167,13 @@ const strModel = '''
 
     void delete() {
       __preRemove();
-      sqlExecutor.delete(this);
+      __query.delete(this);
       __postRemove();
     }
 
     void deletePermanent() {
       __preRemovePermanent();
-      sqlExecutor.deletePermanent(this);
+      __query.deletePermanent(this);
       __postRemovePermanent();
     }
 

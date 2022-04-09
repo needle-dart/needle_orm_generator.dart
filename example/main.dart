@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:needle_orm/needle_orm.dart';
 import 'package:scope/scope.dart';
@@ -36,7 +35,7 @@ void test() async {
     ..title = 'Dart'
     ..insert();
 
-  var all = await Book.Query.findAll();
+  var all = await Book.Query.findList();
   print(all.map((e) => e.toMap()).toList());
 
   // just a demo for how to use query:
