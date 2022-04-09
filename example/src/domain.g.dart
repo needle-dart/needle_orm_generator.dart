@@ -16,8 +16,6 @@ abstract class __Model extends Model {
   void __setField(String fieldName, dynamic value,
       {errorOnNonExistField: true});
 
-  Map<String, dynamic> toMap();
-
   // abstract end
 
   // mark whether this instance is loaded from db.
@@ -464,7 +462,20 @@ abstract class BaseModel extends __Model {
   }
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+    if (ignoreNull) {
+      var m = <String, dynamic>{};
+      _id != null ? m["id"] = _id : "";
+      _version != null ? m["version"] = _version : "";
+      _deleted != null ? m["deleted"] = _deleted : "";
+      _createdAt != null ? m["createdAt"] = _createdAt?.toIso8601String() : "";
+      _updatedAt != null ? m["updatedAt"] = _updatedAt?.toIso8601String() : "";
+      _createdBy != null ? m["createdBy"] = _createdBy : "";
+      _lastUpdatedBy != null ? m["lastUpdatedBy"] = _lastUpdatedBy : "";
+      _remark != null ? m["remark"] = _remark : "";
+
+      return m;
+    }
     return {
       "id": _id,
       "version": _version,
@@ -568,12 +579,22 @@ class Book extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+    if (ignoreNull) {
+      var m = <String, dynamic>{};
+      _title != null ? m["title"] = _title : "";
+      _price != null ? m["price"] = _price : "";
+      _author != null
+          ? m["author"] = _author?.toMap(ignoreNull: ignoreNull)
+          : "";
+      m.addAll(super.toMap(ignoreNull: true));
+      return m;
+    }
     return {
       "title": _title,
       "price": _price,
-      "author": _author?.toMap(),
-      ...super.toMap(),
+      "author": _author?.toMap(ignoreNull: ignoreNull),
+      ...super.toMap(ignoreNull: ignoreNull),
     };
   }
 
@@ -694,14 +715,24 @@ class User extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+    if (ignoreNull) {
+      var m = <String, dynamic>{};
+      _name != null ? m["name"] = _name : "";
+      _loginName != null ? m["loginName"] = _loginName : "";
+      _address != null ? m["address"] = _address : "";
+      _age != null ? m["age"] = _age : "";
+      _books != null ? m["books"] = _books : "";
+      m.addAll(super.toMap(ignoreNull: true));
+      return m;
+    }
     return {
       "name": _name,
       "loginName": _loginName,
       "address": _address,
       "age": _age,
       "books": _books,
-      ...super.toMap(),
+      ...super.toMap(ignoreNull: ignoreNull),
     };
   }
 
@@ -780,10 +811,16 @@ class Job extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+    if (ignoreNull) {
+      var m = <String, dynamic>{};
+      _name != null ? m["name"] = _name : "";
+      m.addAll(super.toMap(ignoreNull: true));
+      return m;
+    }
     return {
       "name": _name,
-      ...super.toMap(),
+      ...super.toMap(ignoreNull: ignoreNull),
     };
   }
 

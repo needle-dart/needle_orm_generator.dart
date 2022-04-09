@@ -328,13 +328,22 @@ class ClassInspector {
   TypeChecker tsChecker = TypeChecker.fromRuntime(DateTime);
 
   String _toMap(FieldElement field) {
+    return '''"${field.name.removePrefix()}": ${_toMapValue(field)},''';
+  }
+
+  String _toNonNullMap(FieldElement field) {
+    var n = field.name.removePrefix();
+    return '_$n!=null ? m["$n"] = ${_toMapValue(field)} : "" ;';
+  }
+
+  String _toMapValue(FieldElement field) {
     var isDate = field.type.toString().startsWith("DateTime");
     var toStr = isDate
         ? '?.toIso8601String()'
         : isModel(field)
-            ? '?.toMap()'
+            ? '?.toMap(ignoreNull:ignoreNull)'
             : '';
-    return '''"${field.name.removePrefix()}": _${field.name.removePrefix()}$toStr,''';
+    return '_${field.name.removePrefix()}$toStr';
   }
 
   bool isModel(FieldElement field) {
@@ -343,10 +352,16 @@ class ClassInspector {
   }
 
   String overrideToMap(ClassElement clazz) {
-    var superStmt = isTopClass ? "" : "...super.toMap(),";
+    var superStmt = isTopClass ? "" : "...super.toMap(ignoreNull: ignoreNull),";
     return '''
       @override
-        Map<String, dynamic> toMap() {
+        Map<String, dynamic> toMap({bool ignoreNull = true}) {
+          if (ignoreNull) {
+            var m = <String, dynamic>{};
+            ${clazz.fields.map(_toNonNullMap).join('\n')} 
+            ${name == 'BaseModel' ? '' : 'm.addAll(super.toMap(ignoreNull: true));'}
+            return m;
+          }
           return {
             ${clazz.fields.map(_toMap).join('\n')} 
             ${superStmt}

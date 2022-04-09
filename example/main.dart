@@ -36,6 +36,7 @@ void test() async {
     ..insert();
 
   var all = await Book.Query.findList();
+  print('list is:');
   print(all.map((e) => e.toMap()).toList());
 
   // just a demo for how to use query:
@@ -59,7 +60,10 @@ void test() async {
   // q.findAll();
   var books = await q.findList();
 
-  print(books.map((e) => e.toMap()));
+  print('List without nulls:');
+  books.map((e) => e.toMap()).forEach(print);
+  print('List with nulls:');
+  books.map((e) => e.toMap(ignoreNull: false)).forEach(print);
 }
 
 debugCondition(c) {

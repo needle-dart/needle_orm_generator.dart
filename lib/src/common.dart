@@ -113,8 +113,6 @@ const strModel = '''
     void __setField(String fieldName, dynamic value,
       {errorOnNonExistField: true});
 
-    Map<String, dynamic> toMap();
-
     // abstract end
 
     // mark whether this instance is loaded from db.
