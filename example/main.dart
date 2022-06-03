@@ -8,10 +8,10 @@ import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
 
 import 'src/domain.dart';
 
-final log = Logger('GeneratorExample');
+final log = Logger('Main');
 late DataSource globalDs;
 void main() async {
-  Logger.root.level = Level.INFO; // defaults to Level.INFO
+  Logger.root.level = Level.FINE; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
     print(
         '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
@@ -24,17 +24,11 @@ void main() async {
       password: 'needle',
       db: 'needle');
   var conn = await MySqlConnection.connect(settings);
-/* 
-  var result = await conn.query(
-      "insert into users (name, email, age, created_at) values (?, ?, ?, 'now()')",
-      ['Bob', 'bob@bob.com', 25]); 
-  */
 
-  // DataSource ds = MockDataSource();
-  DataSource ds = MariaDbDataSource(conn);
-  globalDs = ds;
-  // (Scope()..value<DataSource>(scopeKeyDefaultDs, ds)).run(test);
+  globalDs = MariaDbDataSource(conn); // used in domain.dart
   await test();
+
+  exit(0);
 }
 
 Future<void> test() async {
@@ -42,7 +36,7 @@ Future<void> test() async {
 
   user
     ..name = 'administrator'
-    ..address = 'abc'
+    ..address = 'China Shanghai Pudong'
     ..age = 23;
 
   await user.save(); // insert
@@ -58,11 +52,10 @@ Future<void> test() async {
 
   var book = Book()
     ..author = user
+    ..price = 11.4
     ..title = 'Dart';
   await book.insert();
   log.info('== 2: book saved , id: ${book.id}');
-
-  if (1 == 1) exit(0);
 
   var all = await Book.Query.findList();
   log.info('list is:');
@@ -70,7 +63,7 @@ Future<void> test() async {
 
   // just a demo for how to use query:
   var q = Book.Query
-    ..title.startsWith('dart')
+    ..title.startsWith('Dart')
     ..price.between(10.0, 20)
     ..author.apply((author) {
       author
@@ -89,12 +82,10 @@ Future<void> test() async {
   // q.findAll();
   var books = await q.findList();
 
-  log.info('List without nulls:');
+  log.info('List without nulls: ${books.length}');
   books.map((e) => e.toMap()).forEach(log.info);
   log.info('List with nulls:');
   books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
-
-  exit(0);
 }
 
 debugCondition(c) {
