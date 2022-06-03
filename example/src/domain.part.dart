@@ -3,6 +3,7 @@ part of 'domain.dart';
 // can write business logic here.
 
 extension BizUser on User {
+  static Loggy _logger = Loggy('USER');
   bool isAdmin() {
     return name!.startsWith('admin');
   }
@@ -12,10 +13,10 @@ extension BizUser on User {
   void beforeInsert() {
     _version = 1;
     _deleted = false;
-    print('before insert user ....');
+    _logger.info('before insert user ....');
   }
 
   void afterInsert() {
-    print('after insert user ....');
+    _logger.info('after insert user ....');
   }
 }

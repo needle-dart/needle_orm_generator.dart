@@ -1,11 +1,19 @@
 import 'dart:async';
 
+import 'package:loggy/loggy.dart';
 import 'package:needle_orm/needle_orm.dart';
 import 'package:scope/scope.dart';
 
 import 'src/domain.dart';
 
+var log = Loggy("main");
+
 void main() {
+  Loggy.initLoggy(
+    logPrinter: const PrettyPrinter(),
+  );
+
+  log.info('start');
   DataSource ds = MockDataSource();
   (Scope()..value<DataSource>(scopeKeyDefaultDs, ds)).run(test);
 }
@@ -24,8 +32,9 @@ void test() async {
     ..save(); // update because id is set.
 
   // call business method
-  print('is admin? ${user.isAdmin()}');
-  print('user.toMap() : ${user.toMap()}');
+  // print('========== logger? $logger');
+  // logger.i('is admin? ${user.isAdmin()}');
+  log.info('user.toMap() : ${user.toMap()}');
 
   // load data from a map
   user.loadMap({"name": 'admin123', "xxxx": 'xxxx'});
@@ -36,8 +45,8 @@ void test() async {
     ..insert();
 
   var all = await Book.Query.findList();
-  print('list is:');
-  print(all.map((e) => e.toMap()).toList());
+  log.info('list is:');
+  log.info(all.map((e) => e.toMap()).toList());
 
   // just a demo for how to use query:
   var q = Book.Query
@@ -49,26 +58,26 @@ void test() async {
         ..address.startsWith('China Shanghai');
     });
 
-  print('');
-  print('-------show conditions begin ----------');
+  log.info('');
+  log.info('-------show conditions begin ----------');
   q.columns.forEach((c) {
     debugCondition(c);
   });
-  print('-------show conditions end ----------');
-  print('');
+  log.info('-------show conditions end ----------');
+  log.info('');
 
   // q.findAll();
   var books = await q.findList();
 
-  print('List without nulls:');
-  books.map((e) => e.toMap()).forEach(print);
-  print('List with nulls:');
-  books.map((e) => e.toMap(ignoreNull: false)).forEach(print);
+  log.info('List without nulls:');
+  books.map((e) => e.toMap()).forEach(log.info);
+  log.info('List with nulls:');
+  books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
 }
 
 debugCondition(c) {
   if (c is ColumnQuery) {
-    c.conditions.forEach(print);
+    c.conditions.forEach(log.info);
   } else if (c is BaseModelQuery) {
     if (cache.contains(c)) {
       // prevent circle reference
@@ -89,7 +98,7 @@ class MockDataSource extends DataSource {
   Future<List<List>> execute(
       String tableName, String sql, Map<String, dynamic> substitutionValues,
       [List<String> returningFields = const []]) async {
-    print(
+    log.info(
         '[sql] [$tableName] $sql [bindings: $substitutionValues] [return: $returningFields]');
     if (tableName == 'books') return _mockBook();
     return List<List>.empty();
