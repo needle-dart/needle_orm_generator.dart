@@ -91,9 +91,7 @@ const strSqlExecutor = '''
     Future<List<List>> query(
         String tableName, String query, Map<String, dynamic> substitutionValues,
         [List<String> returningFields = const []]) {
-      DataSource ds = use(
-        scopeKeyDefaultDs); // get a DataSource from Scope , see routes.dart #post(Book)
-      return ds.execute(tableName, query, substitutionValues, returningFields);
+      return _globalDs.execute(tableName, query, substitutionValues, returningFields);
     }
   }
 
@@ -141,37 +139,37 @@ const strModel = '''
 
     BaseModelQuery get __query => _modelInspector.newQuery(className);
 
-    void insert() {
+    Future<void> insert() async {
       __prePersist();
-      __query.insert(this);
+      await __query.insert(this);
       __postPersist();
     }
 
-    void update() {
+    Future<void> update() async {
       __preUpdate();
-      __query.update(this);
+      await __query.update(this);
       __postUpdate();
     }
 
-    void save() {
+    Future<void> save() async {
       if (__idFieldName == null) throw 'no @ID field';
 
       if (__getField(__idFieldName!) != null) {
-        update();
+        await update();
       } else {
-        insert();
+        await insert();
       }
     }
 
-    void delete() {
+    Future<void> delete() async {
       __preRemove();
-      __query.delete(this);
+      await __query.delete(this);
       __postRemove();
     }
 
-    void deletePermanent() {
+    Future<void> deletePermanent() async {
       __preRemovePermanent();
-      __query.deletePermanent(this);
+      await __query.deletePermanent(this);
       __postRemovePermanent();
     }
 

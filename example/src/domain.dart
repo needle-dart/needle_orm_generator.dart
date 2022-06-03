@@ -1,8 +1,9 @@
 // ignore_for_file: unused_field, unused_element
 
-import 'package:loggy/loggy.dart';
+import 'package:logging/logging.dart';
 import 'package:needle_orm/needle_orm.dart';
-import 'package:scope/scope.dart';
+
+import '../main.dart';
 
 part 'domain.g.dart'; // auto generated code
 part 'domain.part.dart'; // business logic code
@@ -10,7 +11,7 @@ part 'domain.part.dart'; // business logic code
 // all Class names and Field names must start with '_'
 // all business logic must be defined in file : 'domain.part.dart'
 
-final scopeKeyDefaultDs = ScopeKey<DataSource>('DataSource');
+var _globalDs = globalDs;
 
 @Entity()
 abstract class _BaseModel {
@@ -56,7 +57,7 @@ class _Book extends _BaseModel {
   _Book();
 }
 
-@Table(name: 'tbl_user')
+@Table(name: 'users')
 @Entity(
     ds: Entity.DEFAULT_DS,
     prePersist: 'beforeInsert',

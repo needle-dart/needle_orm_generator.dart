@@ -1,48 +1,68 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:loggy/loggy.dart';
+import 'package:logging/logging.dart';
+import 'package:mysql1/mysql1.dart';
 import 'package:needle_orm/needle_orm.dart';
-import 'package:scope/scope.dart';
+import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
 
 import 'src/domain.dart';
 
-var log = Loggy("main");
+final log = Logger('GeneratorExample');
+late DataSource globalDs;
+void main() async {
+  Logger.root.level = Level.INFO; // defaults to Level.INFO
+  Logger.root.onRecord.listen((record) {
+    print(
+        '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
+  });
 
-void main() {
-  Loggy.initLoggy(
-    logPrinter: const PrettyPrinter(),
-  );
+  var settings = new ConnectionSettings(
+      host: 'localhost',
+      port: 3306,
+      user: 'needle',
+      password: 'needle',
+      db: 'needle');
+  var conn = await MySqlConnection.connect(settings);
+/* 
+  var result = await conn.query(
+      "insert into users (name, email, age, created_at) values (?, ?, ?, 'now()')",
+      ['Bob', 'bob@bob.com', 25]); 
+  */
 
-  log.info('start');
-  DataSource ds = MockDataSource();
-  (Scope()..value<DataSource>(scopeKeyDefaultDs, ds)).run(test);
+  // DataSource ds = MockDataSource();
+  DataSource ds = MariaDbDataSource(conn);
+  globalDs = ds;
+  // (Scope()..value<DataSource>(scopeKeyDefaultDs, ds)).run(test);
+  await test();
 }
 
-void test() async {
+Future<void> test() async {
   var user = User();
 
   user
     ..name = 'administrator'
     ..address = 'abc'
-    ..age = 23
-    ..save(); // insert
+    ..age = 23;
 
-  user
-    ..id = 100
-    ..save(); // update because id is set.
+  await user.save(); // insert
+
+  log.info('== 1: admin saved , id: ${user.id}');
 
   // call business method
-  // print('========== logger? $logger');
-  // logger.i('is admin? ${user.isAdmin()}');
+  log.info('is admin? ${user.isAdmin()}');
   log.info('user.toMap() : ${user.toMap()}');
 
   // load data from a map
   user.loadMap({"name": 'admin123', "xxxx": 'xxxx'});
 
-  Book()
+  var book = Book()
     ..author = user
-    ..title = 'Dart'
-    ..insert();
+    ..title = 'Dart';
+  await book.insert();
+  log.info('== 2: book saved , id: ${book.id}');
+
+  if (1 == 1) exit(0);
 
   var all = await Book.Query.findList();
   log.info('list is:');
@@ -73,6 +93,8 @@ void test() async {
   books.map((e) => e.toMap()).forEach(log.info);
   log.info('List with nulls:');
   books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
+
+  exit(0);
 }
 
 debugCondition(c) {
