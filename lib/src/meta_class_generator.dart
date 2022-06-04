@@ -26,6 +26,7 @@ class NeedleOrmMetaInfoGenerator extends Generator {
         elements.map((e) => e.element).whereType<ClassElement>().toList();
 
     values.add(strModel);
+    values.add(strFieldFilter);
     values.add(genBaseModelQuery(classes));
     values.add(strModelInspector(classes
         .where((element) => !element.isAbstract)

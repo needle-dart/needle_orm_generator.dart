@@ -184,3 +184,85 @@ const strModel = '''
     void __postLoad() {}
   }
   ''';
+
+const strFieldFilter = r'''
+  /// support toMap(fields:'*'), toMap(fields:'name,price,author(*),editor(name,email)')
+  class FieldFilter {
+    final String fields;
+
+    List<String> _fieldList = [];
+
+    List<String> get fieldList => List.of(_fieldList);
+
+    FieldFilter(this.fields) {
+      _fieldList = _parseFields();
+    }
+
+    bool contains(String field, {String? idField}) {
+      if (shouldIncludeIdFields()) {
+        if (field == idField) {
+          return true;
+        }
+      }
+      return fieldList.any(
+          (name) => name == '*' || name == field || name.startsWith('$field('));
+    }
+
+    bool shouldIncludeIdFields() {
+      return fields.trim().isEmpty;
+    }
+
+    String subFilter(String field) {
+      List<String> subList = fieldList
+          .where((name) => name == field || name.startsWith('$field('))
+          .toList();
+      if (subList.isEmpty) {
+        return '';
+      }
+      var str = subList.first;
+      int i = str.indexOf('(');
+      if (i != -1) {
+        return str.substring(i + 1, str.length - 1);
+      }
+      return '';
+    }
+
+    List<String> _parseFields() {
+      var result = <String>[];
+      var str = fields.trim().replaceAll(' ', '');
+      int j = 0;
+      for (int i = 1; i < str.length; i++) {
+        if (str[i] == ',') {
+          result.add(str.substring(j, i));
+          j = i + 1;
+        } else if (str[i] == '(') {
+          int k = _readTillParenthesisEnd(str, i + 1);
+          if (k == -1) {
+            throw '( and ) do NOT match';
+          }
+          i = k;
+        }
+      }
+      if (j < str.length) {
+        result.add(str.substring(j));
+      }
+      return result;
+    }
+
+    int _readTillParenthesisEnd(String str, int index) {
+      int left = 1;
+      for (; index < str.length; index++) {
+        if (str[index] == ')') {
+          left--;
+        } else if (str[index] == '(') {
+          left++;
+        }
+        if (left == 0) {
+          return index;
+        }
+      }
+      return -1;
+    }
+  }
+
+''';

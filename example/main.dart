@@ -83,9 +83,9 @@ Future<void> test() async {
   var books = await q.findList();
 
   log.info('List without nulls: ${books.length}');
-  books.map((e) => e.toMap()).forEach(log.info);
-  log.info('List with nulls:');
-  books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
+  books.map((e) => e.toMap(fields: 'title,price,author')).forEach(log.info);
+  // log.info('List with nulls:');
+  // books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
 }
 
 debugCondition(c) {

@@ -91,6 +91,85 @@ abstract class __Model extends Model {
   void __postLoad() {}
 }
 
+/// support toMap(fields:'*'), toMap(fields:'name,price,author(*),editor(name,email)')
+class FieldFilter {
+  final String fields;
+
+  List<String> _fieldList = [];
+
+  List<String> get fieldList => List.of(_fieldList);
+
+  FieldFilter(this.fields) {
+    _fieldList = _parseFields();
+  }
+
+  bool contains(String field, {String? idField}) {
+    if (shouldIncludeIdFields()) {
+      if (field == idField) {
+        return true;
+      }
+    }
+    return fieldList.any(
+        (name) => name == '*' || name == field || name.startsWith('$field('));
+  }
+
+  bool shouldIncludeIdFields() {
+    return fields.trim().isEmpty;
+  }
+
+  String subFilter(String field) {
+    List<String> subList = fieldList
+        .where((name) => name == field || name.startsWith('$field('))
+        .toList();
+    if (subList.isEmpty) {
+      return '';
+    }
+    var str = subList.first;
+    int i = str.indexOf('(');
+    if (i != -1) {
+      return str.substring(i + 1, str.length - 1);
+    }
+    return '';
+  }
+
+  List<String> _parseFields() {
+    var result = <String>[];
+    var str = fields.trim().replaceAll(' ', '');
+    int j = 0;
+    for (int i = 1; i < str.length; i++) {
+      if (str[i] == ',') {
+        result.add(str.substring(j, i));
+        j = i + 1;
+      } else if (str[i] == '(') {
+        int k = _readTillParenthesisEnd(str, i + 1);
+        if (k == -1) {
+          throw '( and ) do NOT match';
+        }
+        i = k;
+      }
+    }
+    if (j < str.length) {
+      result.add(str.substring(j));
+    }
+    return result;
+  }
+
+  int _readTillParenthesisEnd(String str, int index) {
+    int left = 1;
+    for (; index < str.length; index++) {
+      if (str[index] == ')') {
+        left--;
+      } else if (str[index] == '(') {
+        left++;
+      }
+      if (left == 0) {
+        return index;
+      }
+    }
+    return -1;
+  }
+}
+
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
@@ -461,29 +540,53 @@ abstract class BaseModel extends __Model {
   }
 
   @override
-  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+  Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
+    var filter = FieldFilter(fields);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _id != null ? m["id"] = _id : "";
-      _version != null ? m["version"] = _version : "";
-      _deleted != null ? m["deleted"] = _deleted : "";
-      _createdAt != null ? m["createdAt"] = _createdAt?.toIso8601String() : "";
-      _updatedAt != null ? m["updatedAt"] = _updatedAt?.toIso8601String() : "";
-      _createdBy != null ? m["createdBy"] = _createdBy : "";
-      _lastUpdatedBy != null ? m["lastUpdatedBy"] = _lastUpdatedBy : "";
-      _remark != null ? m["remark"] = _remark : "";
+      _id != null && filter.contains("id", idField: __idFieldName)
+          ? m["id"] = _id
+          : "";
+      _version != null && filter.contains("version", idField: __idFieldName)
+          ? m["version"] = _version
+          : "";
+      _deleted != null && filter.contains("deleted", idField: __idFieldName)
+          ? m["deleted"] = _deleted
+          : "";
+      _createdAt != null && filter.contains("createdAt", idField: __idFieldName)
+          ? m["createdAt"] = _createdAt?.toIso8601String()
+          : "";
+      _updatedAt != null && filter.contains("updatedAt", idField: __idFieldName)
+          ? m["updatedAt"] = _updatedAt?.toIso8601String()
+          : "";
+      _createdBy != null && filter.contains("createdBy", idField: __idFieldName)
+          ? m["createdBy"] = _createdBy
+          : "";
+      _lastUpdatedBy != null &&
+              filter.contains("lastUpdatedBy", idField: __idFieldName)
+          ? m["lastUpdatedBy"] = _lastUpdatedBy
+          : "";
+      _remark != null && filter.contains("remark", idField: __idFieldName)
+          ? m["remark"] = _remark
+          : "";
 
       return m;
     }
     return {
-      "id": _id,
-      "version": _version,
-      "deleted": _deleted,
-      "createdAt": _createdAt?.toIso8601String(),
-      "updatedAt": _updatedAt?.toIso8601String(),
-      "createdBy": _createdBy,
-      "lastUpdatedBy": _lastUpdatedBy,
-      "remark": _remark,
+      if (filter.contains('id', idField: __idFieldName)) "id": _id,
+      if (filter.contains('version', idField: __idFieldName))
+        "version": _version,
+      if (filter.contains('deleted', idField: __idFieldName))
+        "deleted": _deleted,
+      if (filter.contains('createdAt', idField: __idFieldName))
+        "createdAt": _createdAt?.toIso8601String(),
+      if (filter.contains('updatedAt', idField: __idFieldName))
+        "updatedAt": _updatedAt?.toIso8601String(),
+      if (filter.contains('createdBy', idField: __idFieldName))
+        "createdBy": _createdBy,
+      if (filter.contains('lastUpdatedBy', idField: __idFieldName))
+        "lastUpdatedBy": _lastUpdatedBy,
+      if (filter.contains('remark', idField: __idFieldName)) "remark": _remark,
     };
   }
 
@@ -578,22 +681,30 @@ class Book extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+  Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
+    var filter = FieldFilter(fields);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _title != null ? m["title"] = _title : "";
-      _price != null ? m["price"] = _price : "";
-      _author != null
-          ? m["author"] = _author?.toMap(ignoreNull: ignoreNull)
+      _title != null && filter.contains("title", idField: __idFieldName)
+          ? m["title"] = _title
           : "";
-      m.addAll(super.toMap(ignoreNull: true));
+      _price != null && filter.contains("price", idField: __idFieldName)
+          ? m["price"] = _price
+          : "";
+      _author != null && filter.contains("author", idField: __idFieldName)
+          ? m["author"] = _author?.toMap(
+              fields: filter.subFilter("author"), ignoreNull: ignoreNull)
+          : "";
+      m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      "title": _title,
-      "price": _price,
-      "author": _author?.toMap(ignoreNull: ignoreNull),
-      ...super.toMap(ignoreNull: ignoreNull),
+      if (filter.contains('title', idField: __idFieldName)) "title": _title,
+      if (filter.contains('price', idField: __idFieldName)) "price": _price,
+      if (filter.contains('author', idField: __idFieldName))
+        "author": _author?.toMap(
+            fields: filter.subFilter("author"), ignoreNull: ignoreNull),
+      ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
   }
 
@@ -714,24 +825,37 @@ class User extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+  Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
+    var filter = FieldFilter(fields);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _name != null ? m["name"] = _name : "";
-      _loginName != null ? m["loginName"] = _loginName : "";
-      _address != null ? m["address"] = _address : "";
-      _age != null ? m["age"] = _age : "";
-      _books != null ? m["books"] = _books : "";
-      m.addAll(super.toMap(ignoreNull: true));
+      _name != null && filter.contains("name", idField: __idFieldName)
+          ? m["name"] = _name
+          : "";
+      _loginName != null && filter.contains("loginName", idField: __idFieldName)
+          ? m["loginName"] = _loginName
+          : "";
+      _address != null && filter.contains("address", idField: __idFieldName)
+          ? m["address"] = _address
+          : "";
+      _age != null && filter.contains("age", idField: __idFieldName)
+          ? m["age"] = _age
+          : "";
+      _books != null && filter.contains("books", idField: __idFieldName)
+          ? m["books"] = _books
+          : "";
+      m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      "name": _name,
-      "loginName": _loginName,
-      "address": _address,
-      "age": _age,
-      "books": _books,
-      ...super.toMap(ignoreNull: ignoreNull),
+      if (filter.contains('name', idField: __idFieldName)) "name": _name,
+      if (filter.contains('loginName', idField: __idFieldName))
+        "loginName": _loginName,
+      if (filter.contains('address', idField: __idFieldName))
+        "address": _address,
+      if (filter.contains('age', idField: __idFieldName)) "age": _age,
+      if (filter.contains('books', idField: __idFieldName)) "books": _books,
+      ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
   }
 
@@ -810,16 +934,19 @@ class Job extends BaseModel {
   }
 
   @override
-  Map<String, dynamic> toMap({bool ignoreNull = true}) {
+  Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
+    var filter = FieldFilter(fields);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _name != null ? m["name"] = _name : "";
-      m.addAll(super.toMap(ignoreNull: true));
+      _name != null && filter.contains("name", idField: __idFieldName)
+          ? m["name"] = _name
+          : "";
+      m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      "name": _name,
-      ...super.toMap(ignoreNull: ignoreNull),
+      if (filter.contains('name', idField: __idFieldName)) "name": _name,
+      ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
   }
 

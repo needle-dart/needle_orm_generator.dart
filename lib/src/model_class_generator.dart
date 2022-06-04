@@ -328,12 +328,12 @@ class ClassInspector {
   TypeChecker tsChecker = TypeChecker.fromRuntime(DateTime);
 
   String _toMap(FieldElement field) {
-    return '''"${field.name.removePrefix()}": ${_toMapValue(field)},''';
+    return '''if (filter.contains('${field.name.removePrefix()}', idField: __idFieldName))  "${field.name.removePrefix()}": ${_toMapValue(field)},''';
   }
 
   String _toNonNullMap(FieldElement field) {
     var n = field.name.removePrefix();
-    return '_$n!=null ? m["$n"] = ${_toMapValue(field)} : "" ;';
+    return '_$n!=null && filter.contains("${field.name.removePrefix()}", idField: __idFieldName) ? m["$n"] = ${_toMapValue(field)} : "" ;';
   }
 
   String _toMapValue(FieldElement field) {
@@ -341,7 +341,7 @@ class ClassInspector {
     var toStr = isDate
         ? '?.toIso8601String()'
         : isModel(field)
-            ? '?.toMap(ignoreNull:ignoreNull)'
+            ? '?.toMap(fields: filter.subFilter("${field.name.removePrefix()}"), ignoreNull:ignoreNull)'
             : '';
     return '_${field.name.removePrefix()}$toStr';
   }
@@ -352,14 +352,17 @@ class ClassInspector {
   }
 
   String overrideToMap(ClassElement clazz) {
-    var superStmt = isTopClass ? "" : "...super.toMap(ignoreNull: ignoreNull),";
+    var superStmt = isTopClass
+        ? ""
+        : "...super.toMap(fields:fields, ignoreNull: ignoreNull),";
     return '''
       @override
-        Map<String, dynamic> toMap({bool ignoreNull = true}) {
+        Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
+          var filter = FieldFilter(fields);
           if (ignoreNull) {
             var m = <String, dynamic>{};
             ${clazz.fields.map(_toNonNullMap).join('\n')} 
-            ${name == 'BaseModel' ? '' : 'm.addAll(super.toMap(ignoreNull: true));'}
+            ${name == 'BaseModel' ? '' : 'm.addAll(super.toMap(fields:fields, ignoreNull: true));'}
             return m;
           }
           return {
