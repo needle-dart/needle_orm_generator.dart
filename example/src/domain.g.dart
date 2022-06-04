@@ -230,6 +230,16 @@ abstract class _BaseModelQuery<T extends __Model, D>
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;
     List<Model> modelList = _modelCache.findUnloadedList(className).toList();
+
+    // limit to 100 rows
+    if (modelList.length > 100) {
+      modelList = modelList.sublist(0, 100);
+    }
+    // maybe 101 here
+    if (!modelList.contains(this)) {
+      modelList.add(m);
+    }
+
     List<dynamic> idList = modelList
         .map((e) => modelInspector.getFieldValue(e, idFieldName!))
         .toList(growable: false);
