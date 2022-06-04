@@ -19,7 +19,9 @@ abstract class __Model extends Model {
   // abstract end
 
   // mark whether this instance is loaded from db.
-  bool __isLoadedFromDb = false;
+  bool __dbLoaded = false; // if fields has been loaded from db.
+  bool __dbAttached = false; // if this instance is created by Query
+  _BaseModelQuery? __topQuery;
 
   // mark all modified fields after loaded
   final __dirtyFields = <String>{};
@@ -42,6 +44,22 @@ abstract class __Model extends Model {
     return __dirtyFields
         .map((e) => "${e.toLowerCase()} : ${__getField(e)}")
         .join(", ");
+  }
+
+  void __markAttached(bool attached, _BaseModelQuery topQuery) {
+    __dbAttached = attached;
+    __topQuery = topQuery;
+    topQuery.cache(this);
+  }
+
+  void __markLoaded(bool loaded) {
+    __dbLoaded = loaded;
+  }
+
+  void __ensureLoaded() {
+    if (__dbAttached && !__dbLoaded) {
+      __topQuery?.ensureLoaded(this);
+    }
   }
 
   BaseModelQuery get __query => _modelInspector.newQuery(className);
@@ -91,19 +109,42 @@ abstract class __Model extends Model {
   void __postLoad() {}
 }
 
+/// cache bound with a top query
+class QueryModelCache {
+  final ModelInspector modelInspector;
+  Map<String, List<__Model>> cacheMap = {};
+
+  QueryModelCache(this.modelInspector);
+
+  void add(__Model m) {
+    var className = modelInspector.getClassName(m);
+    var list = cacheMap[className] ?? [];
+    if (!list.contains(m)) {
+      list.add(m);
+    }
+    cacheMap[className] = list;
+  }
+
+  Iterable<__Model> findUnloadedList(String className) {
+    cacheMap[className] ??= [];
+    return cacheMap[className]!.where((e) => !e.__dbLoaded);
+  }
+}
+
 /// support toMap(fields:'*'), toMap(fields:'name,price,author(*),editor(name,email)')
 class FieldFilter {
   final String fields;
+  final String? idField;
 
   List<String> _fieldList = [];
 
   List<String> get fieldList => List.of(_fieldList);
 
-  FieldFilter(this.fields) {
+  FieldFilter(this.fields, this.idField) {
     _fieldList = _parseFields();
   }
 
-  bool contains(String field, {String? idField}) {
+  bool contains(String field) {
     if (shouldIncludeIdFields()) {
       if (field == idField) {
         return true;
@@ -172,9 +213,33 @@ class FieldFilter {
 
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
+  late QueryModelCache _modelCache;
+
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
       : super(_modelInspector, sqlExecutor,
-            topQuery: topQuery, propName: propName);
+            topQuery: topQuery, propName: propName) {
+    this._modelCache = QueryModelCache(modelInspector);
+  }
+
+  void cache(__Model m) {
+    _modelCache.add(m);
+  }
+
+  void ensureLoaded(Model m) {
+    if ((m as __Model).__dbLoaded) return;
+    var className = modelInspector.getClassName(m);
+    var idFieldName = m.__idFieldName;
+    List<Model> modelList = _modelCache.findUnloadedList(className).toList();
+    List<dynamic> idList = modelList
+        .map((e) => modelInspector.getFieldValue(e, idFieldName!))
+        .toList(growable: false);
+    var newQuery = modelInspector.newQuery(className);
+    var modelListResult =
+        waitFor(newQuery.findByIds(idList, existModeList: modelList));
+    for (Model m in modelListResult) {
+      (m as __Model).__markLoaded(true);
+    }
+  }
 }
 
 class _ModelInspector extends ModelInspector<__Model> {
@@ -222,19 +287,21 @@ class _ModelInspector extends ModelInspector<__Model> {
   void loadModel(__Model model, Map<String, dynamic> m,
       {errorOnNonExistField: false}) {
     model.loadMap(m, errorOnNonExistField: false);
-    model.__isLoadedFromDb = true;
+    model.__dbAttached = true;
+    model.__dbLoaded = true;
     model.__cleanDirty();
   }
 
   @override
-  __Model newInstance(String className) {
+  __Model newInstance(String className,
+      {bool attachDb = false, required BaseModelQuery topQuery}) {
     switch (className) {
       case 'Book':
-        return Book();
+        return Book()..__markAttached(true, topQuery as _BaseModelQuery);
       case 'User':
-        return User();
+        return User()..__markAttached(true, topQuery as _BaseModelQuery);
       case 'Job':
-        return Job();
+        return Job()..__markAttached(true, topQuery as _BaseModelQuery);
       default:
         throw 'unknown class : $className';
     }
@@ -250,6 +317,11 @@ class _ModelInspector extends ModelInspector<__Model> {
         return JobModelQuery();
     }
     throw 'Unknow Query Name: $name';
+  }
+
+  @override
+  void markLoaded(__Model model) {
+    model.__markLoaded(true);
   }
 }
 
@@ -416,56 +488,88 @@ class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
 
 abstract class BaseModel extends __Model {
   int? _id;
-  int? get id => _id;
+  int? get id {
+    __ensureLoaded();
+    return _id;
+  }
+
   set id(int? v) {
     _id = v;
     __markDirty('id');
   }
 
   int? _version;
-  int? get version => _version;
+  int? get version {
+    __ensureLoaded();
+    return _version;
+  }
+
   set version(int? v) {
     _version = v;
     __markDirty('version');
   }
 
   bool? _deleted;
-  bool? get deleted => _deleted;
+  bool? get deleted {
+    __ensureLoaded();
+    return _deleted;
+  }
+
   set deleted(bool? v) {
     _deleted = v;
     __markDirty('deleted');
   }
 
   DateTime? _createdAt;
-  DateTime? get createdAt => _createdAt;
+  DateTime? get createdAt {
+    __ensureLoaded();
+    return _createdAt;
+  }
+
   set createdAt(DateTime? v) {
     _createdAt = v;
     __markDirty('createdAt');
   }
 
   DateTime? _updatedAt;
-  DateTime? get updatedAt => _updatedAt;
+  DateTime? get updatedAt {
+    __ensureLoaded();
+    return _updatedAt;
+  }
+
   set updatedAt(DateTime? v) {
     _updatedAt = v;
     __markDirty('updatedAt');
   }
 
   String? _createdBy;
-  String? get createdBy => _createdBy;
+  String? get createdBy {
+    __ensureLoaded();
+    return _createdBy;
+  }
+
   set createdBy(String? v) {
     _createdBy = v;
     __markDirty('createdBy');
   }
 
   String? _lastUpdatedBy;
-  String? get lastUpdatedBy => _lastUpdatedBy;
+  String? get lastUpdatedBy {
+    __ensureLoaded();
+    return _lastUpdatedBy;
+  }
+
   set lastUpdatedBy(String? v) {
     _lastUpdatedBy = v;
     __markDirty('lastUpdatedBy');
   }
 
   String? _remark;
-  String? get remark => _remark;
+  String? get remark {
+    __ensureLoaded();
+    return _remark;
+  }
+
   set remark(String? v) {
     _remark = v;
     __markDirty('remark');
@@ -541,52 +645,43 @@ abstract class BaseModel extends __Model {
 
   @override
   Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
-    var filter = FieldFilter(fields);
+    var filter = FieldFilter(fields, __idFieldName);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _id != null && filter.contains("id", idField: __idFieldName)
-          ? m["id"] = _id
+      id != null && filter.contains("id") ? m["id"] = id : "";
+      version != null && filter.contains("version")
+          ? m["version"] = version
           : "";
-      _version != null && filter.contains("version", idField: __idFieldName)
-          ? m["version"] = _version
+      deleted != null && filter.contains("deleted")
+          ? m["deleted"] = deleted
           : "";
-      _deleted != null && filter.contains("deleted", idField: __idFieldName)
-          ? m["deleted"] = _deleted
+      createdAt != null && filter.contains("createdAt")
+          ? m["createdAt"] = createdAt?.toIso8601String()
           : "";
-      _createdAt != null && filter.contains("createdAt", idField: __idFieldName)
-          ? m["createdAt"] = _createdAt?.toIso8601String()
+      updatedAt != null && filter.contains("updatedAt")
+          ? m["updatedAt"] = updatedAt?.toIso8601String()
           : "";
-      _updatedAt != null && filter.contains("updatedAt", idField: __idFieldName)
-          ? m["updatedAt"] = _updatedAt?.toIso8601String()
+      createdBy != null && filter.contains("createdBy")
+          ? m["createdBy"] = createdBy
           : "";
-      _createdBy != null && filter.contains("createdBy", idField: __idFieldName)
-          ? m["createdBy"] = _createdBy
+      lastUpdatedBy != null && filter.contains("lastUpdatedBy")
+          ? m["lastUpdatedBy"] = lastUpdatedBy
           : "";
-      _lastUpdatedBy != null &&
-              filter.contains("lastUpdatedBy", idField: __idFieldName)
-          ? m["lastUpdatedBy"] = _lastUpdatedBy
-          : "";
-      _remark != null && filter.contains("remark", idField: __idFieldName)
-          ? m["remark"] = _remark
-          : "";
+      remark != null && filter.contains("remark") ? m["remark"] = remark : "";
 
       return m;
     }
     return {
-      if (filter.contains('id', idField: __idFieldName)) "id": _id,
-      if (filter.contains('version', idField: __idFieldName))
-        "version": _version,
-      if (filter.contains('deleted', idField: __idFieldName))
-        "deleted": _deleted,
-      if (filter.contains('createdAt', idField: __idFieldName))
-        "createdAt": _createdAt?.toIso8601String(),
-      if (filter.contains('updatedAt', idField: __idFieldName))
-        "updatedAt": _updatedAt?.toIso8601String(),
-      if (filter.contains('createdBy', idField: __idFieldName))
-        "createdBy": _createdBy,
-      if (filter.contains('lastUpdatedBy', idField: __idFieldName))
-        "lastUpdatedBy": _lastUpdatedBy,
-      if (filter.contains('remark', idField: __idFieldName)) "remark": _remark,
+      if (filter.contains('id')) "id": id,
+      if (filter.contains('version')) "version": version,
+      if (filter.contains('deleted')) "deleted": deleted,
+      if (filter.contains('createdAt'))
+        "createdAt": createdAt?.toIso8601String(),
+      if (filter.contains('updatedAt'))
+        "updatedAt": updatedAt?.toIso8601String(),
+      if (filter.contains('createdBy')) "createdBy": createdBy,
+      if (filter.contains('lastUpdatedBy')) "lastUpdatedBy": lastUpdatedBy,
+      if (filter.contains('remark')) "remark": remark,
     };
   }
 
@@ -619,21 +714,33 @@ class BookModelQuery extends BaseModelModelQuery {
 
 class Book extends BaseModel {
   String? _title;
-  String? get title => _title;
+  String? get title {
+    __ensureLoaded();
+    return _title;
+  }
+
   set title(String? v) {
     _title = v;
     __markDirty('title');
   }
 
   double? _price;
-  double? get price => _price;
+  double? get price {
+    __ensureLoaded();
+    return _price;
+  }
+
   set price(double? v) {
     _price = v;
     __markDirty('price');
   }
 
   User? _author;
-  User? get author => _author;
+  User? get author {
+    __ensureLoaded();
+    return _author;
+  }
+
   set author(User? v) {
     _author = v;
     __markDirty('author');
@@ -682,27 +789,23 @@ class Book extends BaseModel {
 
   @override
   Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
-    var filter = FieldFilter(fields);
+    var filter = FieldFilter(fields, __idFieldName);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _title != null && filter.contains("title", idField: __idFieldName)
-          ? m["title"] = _title
-          : "";
-      _price != null && filter.contains("price", idField: __idFieldName)
-          ? m["price"] = _price
-          : "";
-      _author != null && filter.contains("author", idField: __idFieldName)
-          ? m["author"] = _author?.toMap(
+      title != null && filter.contains("title") ? m["title"] = title : "";
+      price != null && filter.contains("price") ? m["price"] = price : "";
+      author != null && filter.contains("author")
+          ? m["author"] = author?.toMap(
               fields: filter.subFilter("author"), ignoreNull: ignoreNull)
           : "";
       m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      if (filter.contains('title', idField: __idFieldName)) "title": _title,
-      if (filter.contains('price', idField: __idFieldName)) "price": _price,
-      if (filter.contains('author', idField: __idFieldName))
-        "author": _author?.toMap(
+      if (filter.contains('title')) "title": title,
+      if (filter.contains('price')) "price": price,
+      if (filter.contains('author'))
+        "author": author?.toMap(
             fields: filter.subFilter("author"), ignoreNull: ignoreNull),
       ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
@@ -739,35 +842,55 @@ class UserModelQuery extends BaseModelModelQuery {
 
 class User extends BaseModel {
   String? _name;
-  String? get name => _name;
+  String? get name {
+    __ensureLoaded();
+    return _name;
+  }
+
   set name(String? v) {
     _name = v;
     __markDirty('name');
   }
 
   String? _loginName;
-  String? get loginName => _loginName;
+  String? get loginName {
+    __ensureLoaded();
+    return _loginName;
+  }
+
   set loginName(String? v) {
     _loginName = v;
     __markDirty('loginName');
   }
 
   String? _address;
-  String? get address => _address;
+  String? get address {
+    __ensureLoaded();
+    return _address;
+  }
+
   set address(String? v) {
     _address = v;
     __markDirty('address');
   }
 
   int? _age;
-  int? get age => _age;
+  int? get age {
+    __ensureLoaded();
+    return _age;
+  }
+
   set age(int? v) {
     _age = v;
     __markDirty('age');
   }
 
   List<Book>? _books;
-  List<Book>? get books => _books;
+  List<Book>? get books {
+    __ensureLoaded();
+    return _books;
+  }
+
   set books(List<Book>? v) {
     _books = v;
     __markDirty('books');
@@ -826,35 +949,27 @@ class User extends BaseModel {
 
   @override
   Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
-    var filter = FieldFilter(fields);
+    var filter = FieldFilter(fields, __idFieldName);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _name != null && filter.contains("name", idField: __idFieldName)
-          ? m["name"] = _name
+      name != null && filter.contains("name") ? m["name"] = name : "";
+      loginName != null && filter.contains("loginName")
+          ? m["loginName"] = loginName
           : "";
-      _loginName != null && filter.contains("loginName", idField: __idFieldName)
-          ? m["loginName"] = _loginName
+      address != null && filter.contains("address")
+          ? m["address"] = address
           : "";
-      _address != null && filter.contains("address", idField: __idFieldName)
-          ? m["address"] = _address
-          : "";
-      _age != null && filter.contains("age", idField: __idFieldName)
-          ? m["age"] = _age
-          : "";
-      _books != null && filter.contains("books", idField: __idFieldName)
-          ? m["books"] = _books
-          : "";
+      age != null && filter.contains("age") ? m["age"] = age : "";
+      books != null && filter.contains("books") ? m["books"] = books : "";
       m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      if (filter.contains('name', idField: __idFieldName)) "name": _name,
-      if (filter.contains('loginName', idField: __idFieldName))
-        "loginName": _loginName,
-      if (filter.contains('address', idField: __idFieldName))
-        "address": _address,
-      if (filter.contains('age', idField: __idFieldName)) "age": _age,
-      if (filter.contains('books', idField: __idFieldName)) "books": _books,
+      if (filter.contains('name')) "name": name,
+      if (filter.contains('loginName')) "loginName": loginName,
+      if (filter.contains('address')) "address": address,
+      if (filter.contains('age')) "age": age,
+      if (filter.contains('books')) "books": books,
       ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
   }
@@ -896,7 +1011,11 @@ class JobModelQuery extends BaseModelModelQuery {
 
 class Job extends BaseModel {
   String? _name;
-  String? get name => _name;
+  String? get name {
+    __ensureLoaded();
+    return _name;
+  }
+
   set name(String? v) {
     _name = v;
     __markDirty('name');
@@ -935,17 +1054,15 @@ class Job extends BaseModel {
 
   @override
   Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
-    var filter = FieldFilter(fields);
+    var filter = FieldFilter(fields, __idFieldName);
     if (ignoreNull) {
       var m = <String, dynamic>{};
-      _name != null && filter.contains("name", idField: __idFieldName)
-          ? m["name"] = _name
-          : "";
+      name != null && filter.contains("name") ? m["name"] = name : "";
       m.addAll(super.toMap(fields: fields, ignoreNull: true));
       return m;
     }
     return {
-      if (filter.contains('name', idField: __idFieldName)) "name": _name,
+      if (filter.contains('name')) "name": name,
       ...super.toMap(fields: fields, ignoreNull: ignoreNull),
     };
   }

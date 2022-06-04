@@ -17,7 +17,7 @@ void main() async {
         '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
   });
 
-  var settings = new ConnectionSettings(
+  var settings = ConnectionSettings(
       host: 'localhost',
       port: 3306,
       user: 'needle',
@@ -31,8 +31,18 @@ void main() async {
   exit(0);
 }
 
+Future<void> test2() async {
+  var existBooks = [Book()..id = 150];
+  var books =
+      await Book.Query.findByIds([1, 15, 16, 150], existModeList: existBooks);
+  log.info('books list: $books');
+  bool reused = books.any((book1) => existBooks.any((book2) => book1 == book2));
+  log.info('reused: $reused');
+  log.info('books: ${books.map((e) => e.toMap()).toList()}');
+}
+
 Future<void> test() async {
-  var user = User();
+  /* var user = User();
 
   user
     ..name = 'administrator'
@@ -59,7 +69,7 @@ Future<void> test() async {
 
   var all = await Book.Query.findList();
   log.info('list is:');
-  log.info(all.map((e) => e.toMap()).toList());
+  log.info(all.map((e) => e.toMap()).toList()); */
 
   // just a demo for how to use query:
   var q = Book.Query
@@ -83,7 +93,13 @@ Future<void> test() async {
   var books = await q.findList();
 
   log.info('List without nulls: ${books.length}');
-  books.map((e) => e.toMap(fields: 'title,price,author')).forEach(log.info);
+
+  // log.info('=======trigger loading users ==========');
+  // log.info('address: ${(books[0] as Book).author?.address}');
+
+  books
+      .map((e) => e.toMap(fields: 'title,price,author(id,address)'))
+      .forEach(log.info);
   // log.info('List with nulls:');
   // books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
 }

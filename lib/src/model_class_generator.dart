@@ -66,7 +66,10 @@ class FieldInspector {
   String generate() {
     return '''
       $_cleanType _$name ;
-      $_cleanType get $name => _$name;
+      $_cleanType get $name {
+        __ensureLoaded();
+        return _$name;
+      }
       set $name($_cleanType v) {
         _$name = v;
         __markDirty('$name');
@@ -328,12 +331,13 @@ class ClassInspector {
   TypeChecker tsChecker = TypeChecker.fromRuntime(DateTime);
 
   String _toMap(FieldElement field) {
-    return '''if (filter.contains('${field.name.removePrefix()}', idField: __idFieldName))  "${field.name.removePrefix()}": ${_toMapValue(field)},''';
+    var name = field.name.removePrefix();
+    return '''if (filter.contains('${name}'))  "${name}": ${_toMapValue(field)},''';
   }
 
   String _toNonNullMap(FieldElement field) {
-    var n = field.name.removePrefix();
-    return '_$n!=null && filter.contains("${field.name.removePrefix()}", idField: __idFieldName) ? m["$n"] = ${_toMapValue(field)} : "" ;';
+    var name = field.name.removePrefix();
+    return '$name!=null && filter.contains("${name}") ? m["$name"] = ${_toMapValue(field)} : "" ;';
   }
 
   String _toMapValue(FieldElement field) {
@@ -343,7 +347,7 @@ class ClassInspector {
         : isModel(field)
             ? '?.toMap(fields: filter.subFilter("${field.name.removePrefix()}"), ignoreNull:ignoreNull)'
             : '';
-    return '_${field.name.removePrefix()}$toStr';
+    return '${field.name.removePrefix()}$toStr';
   }
 
   bool isModel(FieldElement field) {
@@ -358,7 +362,7 @@ class ClassInspector {
     return '''
       @override
         Map<String, dynamic> toMap({String fields = '*', bool ignoreNull = true}) {
-          var filter = FieldFilter(fields);
+          var filter = FieldFilter(fields, __idFieldName);
           if (ignoreNull) {
             var m = <String, dynamic>{};
             ${clazz.fields.map(_toNonNullMap).join('\n')} 

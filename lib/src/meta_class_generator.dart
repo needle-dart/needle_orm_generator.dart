@@ -26,8 +26,9 @@ class NeedleOrmMetaInfoGenerator extends Generator {
         elements.map((e) => e.element).whereType<ClassElement>().toList();
 
     values.add(strModel);
+    values.add(strModelCache);
     values.add(strFieldFilter);
-    values.add(genBaseModelQuery(classes));
+    values.add(strBaseQuery);
     values.add(strModelInspector(classes
         .where((element) => !element.isAbstract)
         .map((e) => e.name.removePrefix())));
@@ -42,24 +43,6 @@ class NeedleOrmMetaInfoGenerator extends Generator {
     values.add('final _allOrmClasses = [${all.join(',')}];');
 
     return values.join('\n\n');
-  }
-
-  String genBaseModelQuery(List<ClassElement> classes) {
-    var caseStmt = classes
-        .where((element) => !element.isAbstract)
-        .map((e) => e.name.removePrefix())
-        .map((name) =>
-            "case '$name': return ${name}ModelQuery(topQuery: this, propName: propName);")
-        .join("\n");
-
-    return """
-abstract class _BaseModelQuery<T extends __Model, D>
-    extends BaseModelQuery<T, D> {
-  _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
-      : super(_modelInspector, sqlExecutor, topQuery: topQuery, propName: propName);
-
-}
-""";
   }
 }
 

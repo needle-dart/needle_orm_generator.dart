@@ -1,6 +1,8 @@
 String strModelInspector(Iterable<String> classes) {
-  var newInstanceCaseStmt =
-      classes.map((name) => "case '$name': return $name();").join('\n');
+  var newInstanceCaseStmt = classes
+      .map((name) =>
+          "case '$name': return $name()..__markAttached(true, topQuery as _BaseModelQuery);")
+      .join('\n');
 
   var classNameStmt =
       classes.map((name) => "if (obj is $name) return '$name';").join('\n');
@@ -57,12 +59,14 @@ String strModelInspector(Iterable<String> classes) {
     void loadModel(__Model model, Map<String, dynamic> m,
         {errorOnNonExistField: false}) {
       model.loadMap(m, errorOnNonExistField: false);
-      model.__isLoadedFromDb = true;
+      model.__dbAttached = true;
+      model.__dbLoaded = true;
       model.__cleanDirty();
     }
 
     @override
-    __Model newInstance(String className) {
+    __Model newInstance(String className,
+      {bool attachDb = false, required BaseModelQuery topQuery}) {
       switch (className) {
         $newInstanceCaseStmt
         default:
@@ -75,6 +79,11 @@ String strModelInspector(Iterable<String> classes) {
         $caseQueryStmt
       }
       throw 'Unknow Query Name: \$name';
+    }
+
+    @override
+    void markLoaded(__Model model) {
+      model.__markLoaded(true);
     }
   }
 
@@ -114,7 +123,9 @@ const strModel = '''
     // abstract end
 
     // mark whether this instance is loaded from db.
-    bool __isLoadedFromDb = false;
+    bool __dbLoaded = false; // if fields has been loaded from db.
+    bool __dbAttached = false; // if this instance is created by Query
+    _BaseModelQuery? __topQuery;
 
     // mark all modified fields after loaded
     final __dirtyFields = <String>{};
@@ -135,6 +146,23 @@ const strModel = '''
 
     String __dirtyValues() {
       return __dirtyFields.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
+    }
+
+
+    void __markAttached(bool attached, _BaseModelQuery topQuery) {
+      __dbAttached = attached;
+      __topQuery = topQuery;
+      topQuery.cache(this);
+    }
+
+    void __markLoaded(bool loaded) {
+      __dbLoaded = loaded;
+    }
+
+    void __ensureLoaded() {
+      if (__dbAttached && !__dbLoaded) {
+        __topQuery?.ensureLoaded(this);
+      }
     }
 
     BaseModelQuery get __query => _modelInspector.newQuery(className);
@@ -185,20 +213,79 @@ const strModel = '''
   }
   ''';
 
+const strModelCache = r'''
+/// cache bound with a top query
+class QueryModelCache {
+  final ModelInspector modelInspector;
+  Map<String, List<__Model>> cacheMap = {};
+
+  QueryModelCache(this.modelInspector);
+
+  void add(__Model m) {
+    var className = modelInspector.getClassName(m);
+    var list = cacheMap[className] ?? [];
+    if (!list.contains(m)) {
+      list.add(m);
+    }
+    cacheMap[className] = list;
+  }
+
+  Iterable<__Model> findUnloadedList(String className) {
+    cacheMap[className] ??= [];
+    return cacheMap[className]!.where((e) => !e.__dbLoaded);
+  }
+}
+''';
+
+const strBaseQuery = r'''
+abstract class _BaseModelQuery<T extends __Model, D>
+    extends BaseModelQuery<T, D> {
+  late QueryModelCache _modelCache;
+
+  _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
+      : super(_modelInspector, sqlExecutor,
+            topQuery: topQuery, propName: propName) {
+    this._modelCache = QueryModelCache(modelInspector);
+  }
+
+  void cache(__Model m) {
+    _modelCache.add(m);
+  }
+
+  void ensureLoaded(Model m) {
+    if ((m as __Model).__dbLoaded) return;
+    var className = modelInspector.getClassName(m);
+    var idFieldName = m.__idFieldName;
+    List<Model> modelList = _modelCache.findUnloadedList(className).toList();
+    List<dynamic> idList = modelList
+        .map((e) => modelInspector.getFieldValue(e, idFieldName!))
+        .toList(growable: false);
+    var newQuery = modelInspector.newQuery(className);
+    var modelListResult =
+        waitFor(newQuery.findByIds(idList, existModeList: modelList));
+    for (Model m in modelListResult) {
+      (m as __Model).__markLoaded(true);
+    }
+  }
+  
+}
+''';
+
 const strFieldFilter = r'''
   /// support toMap(fields:'*'), toMap(fields:'name,price,author(*),editor(name,email)')
   class FieldFilter {
     final String fields;
+    final String? idField;
 
     List<String> _fieldList = [];
 
     List<String> get fieldList => List.of(_fieldList);
 
-    FieldFilter(this.fields) {
+    FieldFilter(this.fields, this.idField) {
       _fieldList = _parseFields();
     }
 
-    bool contains(String field, {String? idField}) {
+    bool contains(String field) {
       if (shouldIncludeIdFields()) {
         if (field == idField) {
           return true;
