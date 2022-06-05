@@ -11,7 +11,7 @@ import 'src/domain.dart';
 final log = Logger('Main');
 late DataSource globalDs;
 void main() async {
-  Logger.root.level = Level.INFO; // defaults to Level.INFO
+  Logger.root.level = Level.FINE; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
     print(
         '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
@@ -27,11 +27,12 @@ void main() async {
 
   globalDs = MariaDbDataSource(conn); // used in domain.dart
 
-  await test();
-  await testFindByIds();
-  await testCount();
-  await testInsert();
-  await testInsertBatch();
+  // await test();
+  // await testFindByIds();
+  // await testCount();
+  // await testInsert();
+  // await testInsertBatch();
+  await testPaging();
 
   exit(0);
 }
@@ -71,7 +72,7 @@ Future<void> testInsert() async {
 }
 
 Future<void> testInsertBatch() async {
-  var n = 3;
+  var n = 10;
   var users = <User>[];
   var books = <Book>[];
   for (int i = 0; i < n; i++) {
@@ -88,10 +89,43 @@ Future<void> testInsertBatch() async {
     books.add(book);
   }
   log.info('users created');
-  await User.Query.insertBatch(users);
+  await User.Query.insertBatch(users, batchSize: 5);
   log.info('users saved');
   var idList = users.map((e) => e.id).toList();
   log.info('ids: $idList');
+}
+
+Future<void> testPaging() async {
+  var q = Book.Query
+    ..title.startsWith('Dart')
+    ..price.between(10.0, 20)
+    ..author.apply((author) {
+      author
+        ..age.ge(18)
+        ..address.startsWith('China Shanghai');
+    });
+
+  q.orders = [Book.Query.id.desc()];
+
+  {
+    q.paging(0, 3);
+    var books = await q.findList();
+    int total = await q.count();
+    log.info('total $total , ids: ${books.map((e) => e.id).toList()}');
+  }
+  {
+    q.paging(1, 3);
+    var books = await q.findList();
+    int total = await q.count();
+    log.info('total $total , ids: ${books.map((e) => e.id).toList()}');
+  }
+  {
+    // prevent paging
+    q.paging(0, 0);
+    var books = await q.findList();
+    int total = await q.count();
+    log.info('total $total , ids: ${books.map((e) => e.id).toList()}');
+  }
 }
 
 Future<void> test() async {
@@ -143,6 +177,8 @@ Future<void> test() async {
   log.info('-------show conditions end ----------');
   log.info('');
  */
+  q.orders = [Book.Query.title.asc()];
+  q.paging(1, 3);
   var books = await q.findList();
 
   log.info('found books: ${books.length}');
