@@ -13,10 +13,10 @@ extension BizUser on User {
   void beforeInsert() {
     _version = 1;
     _deleted = false;
-    _logger.info('before insert user ....');
+    // _logger.info('before insert user ....');
   }
 
   void afterInsert() {
-    _logger.info('after insert user ....');
+    // _logger.info('after insert user ....');
   }
 }

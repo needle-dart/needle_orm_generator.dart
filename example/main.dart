@@ -11,7 +11,7 @@ import 'src/domain.dart';
 final log = Logger('Main');
 late DataSource globalDs;
 void main() async {
-  Logger.root.level = Level.FINE; // defaults to Level.INFO
+  Logger.root.level = Level.INFO; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
     print(
         '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
@@ -26,23 +26,76 @@ void main() async {
   var conn = await MySqlConnection.connect(settings);
 
   globalDs = MariaDbDataSource(conn); // used in domain.dart
+
   await test();
+  await testFindByIds();
+  await testCount();
+  await testInsert();
+  await testInsertBatch();
 
   exit(0);
 }
 
-Future<void> test2() async {
-  var existBooks = [Book()..id = 150];
+Future<void> testFindByIds() async {
+  var existBooks = [Book()..id = 4672];
   var books =
-      await Book.Query.findByIds([1, 15, 16, 150], existModeList: existBooks);
+      await Book.Query.findByIds([1, 15, 16, 4672], existModeList: existBooks);
   log.info('books list: $books');
   bool reused = books.any((book1) => existBooks.any((book2) => book1 == book2));
   log.info('reused: $reused');
   log.info('books: ${books.map((e) => e.toMap()).toList()}');
 }
 
+Future<void> testCount() async {
+  log.info(await Book.Query.count());
+}
+
+Future<void> testInsert() async {
+  var n = 5;
+  for (int i = 0; i < n; i++) {
+    var user = User()
+      ..name = 'name_$i'
+      ..address = 'China Shanghai street_$i'
+      ..age = (n * 0.1).toInt();
+    await user.save();
+    log.info('\t used saved with id: ${user.id}');
+
+    var book = Book()
+      ..author = user
+      ..price = n * 0.3
+      ..title = 'Dart$i';
+    await book.insert();
+    log.info('\t book saved with id: ${book.id}');
+  }
+  log.info('finished');
+}
+
+Future<void> testInsertBatch() async {
+  var n = 3;
+  var users = <User>[];
+  var books = <Book>[];
+  for (int i = 0; i < n; i++) {
+    var user = User()
+      ..name = 'name_$i'
+      ..address = 'China Shanghai street_$i'
+      ..age = (n * 0.1).toInt();
+    users.add(user);
+
+    var book = Book()
+      ..author = user
+      ..price = n * 0.3
+      ..title = 'Dart$i';
+    books.add(book);
+  }
+  log.info('users created');
+  await User.Query.insertBatch(users);
+  log.info('users saved');
+  var idList = users.map((e) => e.id).toList();
+  log.info('ids: $idList');
+}
+
 Future<void> test() async {
-  /* var user = User();
+  var user = User();
 
   user
     ..name = 'administrator'
@@ -69,7 +122,7 @@ Future<void> test() async {
 
   var all = await Book.Query.findList();
   log.info('list is:');
-  log.info(all.map((e) => e.toMap()).toList()); */
+  log.info(all.map((e) => e.toMap()).toList());
 
   // just a demo for how to use query:
   var q = Book.Query
@@ -82,20 +135,17 @@ Future<void> test() async {
     });
 
   log.info('');
+/* 
   log.info('-------show conditions begin ----------');
   q.columns.forEach((c) {
     debugCondition(c);
   });
   log.info('-------show conditions end ----------');
   log.info('');
-
-  // q.findAll();
+ */
   var books = await q.findList();
 
-  log.info('List without nulls: ${books.length}');
-
-  // log.info('=======trigger loading users ==========');
-  // log.info('address: ${(books[0] as Book).author?.address}');
+  log.info('found books: ${books.length}');
 
   books
       .map((e) => e.toMap(fields: 'title,price,author(id,address)'))
@@ -120,28 +170,3 @@ debugCondition(c) {
 }
 
 Set<BaseModelQuery> cache = {};
-
-class MockDataSource extends DataSource {
-  MockDataSource() : super(DatabaseType.PostgreSQL, '10.0');
-  @override
-  Future<List<List>> execute(
-      String tableName, String sql, Map<String, dynamic> substitutionValues,
-      [List<String> returningFields = const []]) async {
-    log.info(
-        '[sql] [$tableName] $sql [bindings: $substitutionValues] [return: $returningFields]');
-    if (tableName == 'books') return _mockBook();
-    return List<List>.empty();
-    // throw UnimplementedError();
-  }
-
-  List<List> _mockBook() {
-    return [
-      ['Dart', 15.0, 200, 100, 1, false]
-    ];
-  }
-
-  @override
-  Future<T> transaction<T>(FutureOr<T> Function(DataSource p1) f) {
-    throw UnimplementedError();
-  }
-}
