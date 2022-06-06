@@ -24,11 +24,11 @@ Future<Database> initMariaDb() async {
       db: 'needle');
   var conn = await MySqlConnection.connect(settings);
 
-  return MariaDbDataSource(conn); // used in domain.dart
+  return MariaDbDatabase(conn); // used in domain.dart
 }
 
 Future<Database> initPostgreSQL() async {
-  return PostgreSqlPoolDataSource(PgPool(
+  return PostgreSqlPoolDatabase(PgPool(
     PgEndpoint(
       host: 'localhost',
       port: 5432,
