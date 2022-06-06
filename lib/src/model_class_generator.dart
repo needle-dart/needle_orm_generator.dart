@@ -86,7 +86,7 @@ class FieldInspector {
     var queryClassName = '${_queryCleanType}ModelQuery';
     //@TODO late : prevent cycle dependency, should be removed in later release
     // UserModelQuery get author => topQuery.findQuery('User');
-    return '$queryClassName get $name => topQuery.findQuery("$_queryCleanType","$name");';
+    return '$queryClassName get $name => topQuery.findQuery(db, "$_queryCleanType","$name");';
   }
 
   static List<String> simpleTypes = [
@@ -164,7 +164,7 @@ class ClassInspector {
 
       @override String get className => '$name';
 
-      static ${name}ModelQuery get Query => ${name}ModelQuery();
+      static ${name}ModelQuery Query({Database? db}) => ${name}ModelQuery(db: db);
 
       ${overrideGetField(classElement)}
       ${overrideSetField(classElement)}
@@ -217,7 +217,7 @@ class ClassInspector {
         @override
         String get className => '$name';
 
-        ${name}ModelQuery({_BaseModelQuery? topQuery, String? propName}) : super(topQuery: topQuery, propName: propName);
+        ${name}ModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db}) : super(topQuery: topQuery, propName: propName, db:db);
 
         $fields
 

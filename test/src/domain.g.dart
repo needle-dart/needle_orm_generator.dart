@@ -62,39 +62,40 @@ abstract class __Model extends Model {
     }
   }
 
-  BaseModelQuery get __query => _modelInspector.newQuery(className);
+  BaseModelQuery __query(Database? db) =>
+      _modelInspector.newQuery(db ?? _globalDs, className);
 
-  Future<void> insert() async {
+  Future<void> insert({Database? db}) async {
     __prePersist();
-    await __query.insert(this);
+    await __query(db).insert(this);
     __postPersist();
   }
 
-  Future<void> update() async {
+  Future<void> update({Database? db}) async {
     __preUpdate();
-    await __query.update(this);
+    await __query(db).update(this);
     __postUpdate();
   }
 
-  Future<void> save() async {
+  Future<void> save({Database? db}) async {
     if (__idFieldName == null) throw 'no @ID field';
 
     if (__getField(__idFieldName!) != null) {
-      await update();
+      await update(db: db);
     } else {
-      await insert();
+      await insert(db: db);
     }
   }
 
-  Future<void> delete() async {
+  Future<void> delete({Database? db}) async {
     __preRemove();
-    await __query.deleteOne(this);
+    await __query(db).deleteOne(this);
     __postRemove();
   }
 
-  Future<void> deletePermanent() async {
+  Future<void> deletePermanent({Database? db}) async {
     __preRemovePermanent();
-    await __query.deleteOnePermanent(this);
+    await __query(db).deleteOnePermanent(this);
     __postRemovePermanent();
   }
 
@@ -215,8 +216,8 @@ abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
   late QueryModelCache _modelCache;
 
-  _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
-      : super(_modelInspector, _globalDs,
+  _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
+      : super(_modelInspector, db ?? _globalDs,
             topQuery: topQuery, propName: propName) {
     this._modelCache = QueryModelCache(modelInspector);
   }
@@ -243,7 +244,7 @@ abstract class _BaseModelQuery<T extends __Model, D>
     List<dynamic> idList = modelList
         .map((e) => modelInspector.getFieldValue(e, idFieldName!))
         .toList(growable: false);
-    var newQuery = modelInspector.newQuery(className);
+    var newQuery = modelInspector.newQuery(db, className);
     var modelListResult =
         waitFor(newQuery.findByIds(idList, existModeList: modelList));
     for (Model m in modelListResult) {
@@ -328,14 +329,14 @@ class _ModelInspector extends ModelInspector<__Model> {
     }
   }
 
-  BaseModelQuery newQuery(String name) {
+  BaseModelQuery newQuery(Database db, String name) {
     switch (name) {
       case 'Book':
-        return BookModelQuery();
+        return BookModelQuery(db: db);
       case 'User':
-        return UserModelQuery();
+        return UserModelQuery(db: db);
       case 'Job':
-        return JobModelQuery();
+        return JobModelQuery(db: db);
     }
     throw 'Unknow Query Name: $name';
   }
@@ -467,8 +468,9 @@ class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
   @override
   String get className => 'BaseModel';
 
-  BaseModelModelQuery({_BaseModelQuery? topQuery, String? propName})
-      : super(topQuery: topQuery, propName: propName);
+  BaseModelModelQuery(
+      {_BaseModelQuery? topQuery, String? propName, Database? db})
+      : super(topQuery: topQuery, propName: propName, db: db);
 
   IntColumn id = IntColumn("id");
   IntColumn version = IntColumn("version");
@@ -587,7 +589,8 @@ abstract class BaseModel extends __Model {
   @override
   String get className => 'BaseModel';
 
-  static BaseModelModelQuery get Query => BaseModelModelQuery();
+  static BaseModelModelQuery Query({Database? db}) =>
+      BaseModelModelQuery(db: db);
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -707,12 +710,12 @@ class BookModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Book';
 
-  BookModelQuery({_BaseModelQuery? topQuery, String? propName})
-      : super(topQuery: topQuery, propName: propName);
+  BookModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+      : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn title = StringColumn("title");
   DoubleColumn price = DoubleColumn("price");
-  UserModelQuery get author => topQuery.findQuery("User", "author");
+  UserModelQuery get author => topQuery.findQuery(db, "User", "author");
 
   List<ColumnQuery> get columns => [title, price];
 
@@ -758,7 +761,7 @@ class Book extends BaseModel {
   @override
   String get className => 'Book';
 
-  static BookModelQuery get Query => BookModelQuery();
+  static BookModelQuery Query({Database? db}) => BookModelQuery(db: db);
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -833,14 +836,14 @@ class UserModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'User';
 
-  UserModelQuery({_BaseModelQuery? topQuery, String? propName})
-      : super(topQuery: topQuery, propName: propName);
+  UserModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+      : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn name = StringColumn("name");
   StringColumn loginName = StringColumn("loginName");
   StringColumn address = StringColumn("address");
   IntColumn age = IntColumn("age");
-  BookModelQuery get books => topQuery.findQuery("Book", "books");
+  BookModelQuery get books => topQuery.findQuery(db, "Book", "books");
 
   List<ColumnQuery> get columns => [name, loginName, address, age];
 
@@ -908,7 +911,7 @@ class User extends BaseModel {
   @override
   String get className => 'User';
 
-  static UserModelQuery get Query => UserModelQuery();
+  static UserModelQuery Query({Database? db}) => UserModelQuery(db: db);
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
@@ -1006,8 +1009,8 @@ class JobModelQuery extends BaseModelModelQuery {
   @override
   String get className => 'Job';
 
-  JobModelQuery({_BaseModelQuery? topQuery, String? propName})
-      : super(topQuery: topQuery, propName: propName);
+  JobModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+      : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn name = StringColumn("name");
 
@@ -1033,7 +1036,7 @@ class Job extends BaseModel {
   @override
   String get className => 'Job';
 
-  static JobModelQuery get Query => JobModelQuery();
+  static JobModelQuery Query({Database? db}) => JobModelQuery(db: db);
 
   @override
   dynamic __getField(String fieldName, {errorOnNonExistField: true}) {

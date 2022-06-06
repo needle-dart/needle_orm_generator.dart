@@ -6,9 +6,14 @@ import 'package:test/test.dart';
 import 'src/domain.dart';
 import 'common.dart';
 
+late Database dbMariadb;
+late Database dbPostgres;
+
 void main() async {
   setUp(() async {
-    await init();
+    dbMariadb = await initMariaDb();
+    dbPostgres = await initPostgreSQL();
+    globalDs = dbMariadb;
   });
 
   tearDown(() async {
@@ -24,6 +29,7 @@ void main() async {
   test('testPaging', testPaging);
   test('testSoftDelete', testSoftDelete);
   test('testPermanentDelete', testPermanentDelete);
+  test('testMultipleDatabases', testMultipleDatabases);
 
   // new Timer(const Duration(seconds: 10), () => exit(0));
 }
@@ -32,8 +38,8 @@ Future<void> testFindByIds() async {
   var log = Logger('$logPrefix testFindByIds');
 
   var existBooks = [Book()..id = 4660];
-  var books = await Book.Query.findByIds([1, 15, 16, 4660, 4674],
-      existModeList: existBooks);
+  var books = await Book.Query()
+      .findByIds([1, 15, 16, 4660, 4674], existModeList: existBooks);
   log.info('books list: $books');
   bool reused = books.any((book1) => existBooks.any((book2) => book1 == book2));
   log.info('reused: $reused');
@@ -42,13 +48,13 @@ Future<void> testFindByIds() async {
 
 Future<void> testCount() async {
   var log = Logger('$logPrefix testCount');
-  log.info(await Book.Query.count());
+  log.info(await Book.Query().count());
 }
 
 Future<void> testInsert() async {
   var log = Logger('$logPrefix testInsert');
 
-  log.info('count before insert : ${await Book.Query.count()}');
+  log.info('count before insert : ${await Book.Query().count()}');
   var n = 5;
   for (int i = 0; i < n; i++) {
     var user = User()
@@ -65,7 +71,7 @@ Future<void> testInsert() async {
     await book.insert();
     log.info('\t book saved with id: ${book.id}');
   }
-  log.info('count after insert : ${await Book.Query.count()}');
+  log.info('count after insert : ${await Book.Query().count()}');
 }
 
 Future<void> testInsertBatch() async {
@@ -88,7 +94,7 @@ Future<void> testInsertBatch() async {
     books.add(book);
   }
   log.info('users created');
-  await User.Query.insertBatch(users, batchSize: 5);
+  await User.Query().insertBatch(users, batchSize: 5);
   log.info('users saved');
   var idList = users.map((e) => e.id).toList();
   log.info('ids: $idList');
@@ -96,7 +102,7 @@ Future<void> testInsertBatch() async {
 
 Future<void> testPaging() async {
   var log = Logger('$logPrefix paging');
-  var q = Book.Query
+  var q = Book.Query()
     ..title.startsWith('Dart')
     ..price.between(10.0, 20)
     ..author.apply((author) {
@@ -105,7 +111,7 @@ Future<void> testPaging() async {
         ..address.startsWith('China Shanghai');
     });
 
-  q.orders = [Book.Query.id.desc()];
+  q.orders = [Book.Query().id.desc()];
 
   {
     q.paging(0, 3);
@@ -162,8 +168,8 @@ Future<void> testUpdate() async {
 Future<void> testLoadNestedFields() async {
   var log = Logger('$logPrefix testLoadNestedFields');
 
-  var q = Book.Query
-    ..orders = [Book.Query.title.asc()]
+  var q = Book.Query()
+    ..orders = [Book.Query().title.asc()]
     ..maxRows = 2;
   var books = await q.findList();
   var total = await q.count();
@@ -188,7 +194,7 @@ Future<void> testSoftDelete() async {
     log.info('\t book saved with id: ${book.id}');
   }
 
-  var q = Book.Query
+  var q = Book.Query()
     ..price.between(18, 19)
     ..title.endsWith('test');
   var total = await q.count();
@@ -216,7 +222,7 @@ Future<void> testPermanentDelete() async {
     log.info('\t book saved with id: ${book.id}');
   }
 
-  var q = Book.Query
+  var q = Book.Query()
     ..price.between(38, 39)
     ..title.endsWith('permanent');
   var total = await q.count();
@@ -225,6 +231,48 @@ Future<void> testPermanentDelete() async {
 
   int deletedCount = await q.deletePermanent();
   log.info('permanent deleted books: $deletedCount');
+}
+
+Future<void> testMultipleDatabases() async {
+  var log = Logger('$logPrefix testMultipleDatabases');
+
+  {
+    var n = 5;
+    for (int i = 0; i < n; i++) {
+      var book = Book()
+        ..price = 18 + i * 0.1
+        ..title = 'Dart $i test';
+      await book.insert(db: dbMariadb);
+      log.info('\t book saved with id: ${book.id}');
+    }
+
+    var q = Book.Query(db: dbMariadb)
+      ..price.between(18, 19)
+      ..title.endsWith('test');
+    var total = await q.count();
+    var totalWithDeleted = await q.count(includeSoftDeleted: true);
+    log.info(
+        'found books[mariadb] , total: $total, totalWithDeleted: $totalWithDeleted');
+  }
+
+  {
+    var n = 5;
+    for (int i = 0; i < n; i++) {
+      var book = Book()
+        ..price = 18 + i * 0.1
+        ..title = 'Dart $i test';
+      await book.insert(db: dbPostgres);
+      log.info('\t book saved with id: ${book.id}');
+    }
+
+    var q = Book.Query(db: dbPostgres)
+      ..price.between(18, 19)
+      ..title.endsWith('test');
+    var total = await q.count();
+    var totalWithDeleted = await q.count(includeSoftDeleted: true);
+    log.info(
+        'found books[postgresql] , total: $total, totalWithDeleted: $totalWithDeleted');
+  }
 }
 
 debugCondition(c) {
