@@ -47,6 +47,17 @@ String strModelInspector(Iterable<String> classes) {
     }
     
     @override
+    void markDeleted(__Model obj, bool deleted) {
+      var clz = meta(getClassName(obj))!;
+      var softDeleteField = clz.softDeleteField();
+      if (softDeleteField == null) {
+        return;
+      }
+      setFieldValue(obj, softDeleteField.name, deleted);
+      obj.__markDirty(softDeleteField.name);
+    }
+    
+    @override
     Map<String, dynamic> getDirtyFields(__Model model) {
       var map = <String, dynamic>{};
       model.__dirtyFields.forEach((name) {

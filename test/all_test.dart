@@ -192,11 +192,16 @@ Future<void> testSoftDelete() async {
     ..price.between(18, 19)
     ..title.endsWith('test');
   var total = await q.count();
-
-  log.info('found books, total: $total');
+  var totalWithDeleted = await q.count(includeSoftDeleted: true);
+  log.info('found books , total: $total, totalWithDeleted: $totalWithDeleted');
 
   int deletedCount = await q.delete();
   log.info('soft deleted books: $deletedCount');
+
+  total = await q.count();
+  totalWithDeleted = await q.count(includeSoftDeleted: true);
+  log.info(
+      'found books again, total: $total, totalWithDeleted: $totalWithDeleted');
 }
 
 Future<void> testPermanentDelete() async {
