@@ -22,6 +22,8 @@ void main() async {
   test('testInsertBatch', testInsertBatch);
   test('testLoadNestedFields', testLoadNestedFields);
   test('testPaging', testPaging);
+  test('testSoftDelete', testSoftDelete);
+  test('testPermanentDelete', testPermanentDelete);
 
   // new Timer(const Duration(seconds: 10), () => exit(0));
 }
@@ -172,6 +174,52 @@ Future<void> testLoadNestedFields() async {
   books
       .map((e) => e.toMap(fields: 'title,price,author(id,address)'))
       .forEach(log.info);
+}
+
+Future<void> testSoftDelete() async {
+  var log = Logger('$logPrefix testSoftDelete');
+
+  var n = 5;
+  for (int i = 0; i < n; i++) {
+    var book = Book()
+      ..price = 18 + i * 0.1
+      ..title = 'Dart $i test';
+    await book.insert();
+    log.info('\t book saved with id: ${book.id}');
+  }
+
+  var q = Book.Query
+    ..price.between(18, 19)
+    ..title.endsWith('test');
+  var total = await q.count();
+
+  log.info('found books, total: $total');
+
+  int deletedCount = await q.delete();
+  log.info('soft deleted books: $deletedCount');
+}
+
+Future<void> testPermanentDelete() async {
+  var log = Logger('$logPrefix testPermanentDelete');
+
+  var n = 5;
+  for (int i = 0; i < n; i++) {
+    var book = Book()
+      ..price = 38 + i * 0.1
+      ..title = 'Dart $i permanent';
+    await book.insert();
+    log.info('\t book saved with id: ${book.id}');
+  }
+
+  var q = Book.Query
+    ..price.between(38, 39)
+    ..title.endsWith('permanent');
+  var total = await q.count();
+
+  log.info('found permanent books, total: $total');
+
+  int deletedCount = await q.deletePermanent();
+  log.info('permanent deleted books: $deletedCount');
 }
 
 debugCondition(c) {

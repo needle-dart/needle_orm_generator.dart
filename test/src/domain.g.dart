@@ -88,13 +88,13 @@ abstract class __Model extends Model {
 
   Future<void> delete() async {
     __preRemove();
-    await __query.delete(this);
+    await __query.deleteOne(this);
     __postRemove();
   }
 
   Future<void> deletePermanent() async {
     __preRemovePermanent();
-    await __query.deletePermanent(this);
+    await __query.deleteOnePermanent(this);
     __postRemovePermanent();
   }
 

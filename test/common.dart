@@ -5,9 +5,9 @@ import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
 
 final logPrefix = 'MainTest';
 final log = Logger(logPrefix);
-late DataSource globalDs;
+late Database globalDs;
 Future<void> init() async {
-  Logger.root.level = Level.INFO; // defaults to Level.INFO
+  Logger.root.level = Level.FINE; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
     print(
         '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
