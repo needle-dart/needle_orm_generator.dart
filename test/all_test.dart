@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:needle_orm/needle_orm.dart';
 import 'package:test/test.dart';
 import 'src/domain.dart';
@@ -15,29 +15,20 @@ void main() async {
     // await globalDs.close();
   });
 
-  test('general test', () async {
-    await testAll();
-  });
-  test('testFindByIds', () async {
-    await testFindByIds();
-  });
-  test('testCount', () async {
-    await testCount();
-  });
-  test('testInsert', () async {
-    await testInsert();
-  });
-  test('testInsertBatch', () async {
-    await testInsertBatch();
-  });
-  test('testPaging', () async {
-    await testPaging();
-  });
+  test('testCount', testCount);
+  test('testInsert', testInsert);
+  test('testUpdate', testUpdate);
+  test('testFindByIds', testFindByIds);
+  test('testInsertBatch', testInsertBatch);
+  test('testLoadNestedFields', testLoadNestedFields);
+  test('testPaging', testPaging);
 
   // new Timer(const Duration(seconds: 10), () => exit(0));
 }
 
 Future<void> testFindByIds() async {
+  var log = Logger('$logPrefix testFindByIds');
+
   var existBooks = [Book()..id = 4660];
   var books = await Book.Query.findByIds([1, 15, 16, 4660, 4674],
       existModeList: existBooks);
@@ -48,10 +39,14 @@ Future<void> testFindByIds() async {
 }
 
 Future<void> testCount() async {
+  var log = Logger('$logPrefix testCount');
   log.info(await Book.Query.count());
 }
 
 Future<void> testInsert() async {
+  var log = Logger('$logPrefix testInsert');
+
+  log.info('count before insert : ${await Book.Query.count()}');
   var n = 5;
   for (int i = 0; i < n; i++) {
     var user = User()
@@ -68,10 +63,12 @@ Future<void> testInsert() async {
     await book.insert();
     log.info('\t book saved with id: ${book.id}');
   }
-  log.info('finished');
+  log.info('count after insert : ${await Book.Query.count()}');
 }
 
 Future<void> testInsertBatch() async {
+  var log = Logger('$logPrefix testInsertBatch');
+
   var n = 10;
   var users = <User>[];
   var books = <Book>[];
@@ -96,6 +93,7 @@ Future<void> testInsertBatch() async {
 }
 
 Future<void> testPaging() async {
+  var log = Logger('$logPrefix paging');
   var q = Book.Query
     ..title.startsWith('Dart')
     ..price.between(10.0, 20)
@@ -128,7 +126,9 @@ Future<void> testPaging() async {
   }
 }
 
-Future<void> testAll() async {
+Future<void> testUpdate() async {
+  var log = Logger('$logPrefix testUpdate');
+
   var user = User();
 
   user
@@ -146,48 +146,32 @@ Future<void> testAll() async {
 
   // load data from a map
   user.loadMap({"name": 'admin123', "xxxx": 'xxxx'});
+  user.save(); // update
+  log.info('== 2: admin updated, id: ${user.id}');
 
   var book = Book()
     ..author = user
     ..price = 11.4
-    ..title = 'Dart';
+    ..title = 'Dart admin';
   await book.insert();
-  log.info('== 2: book saved , id: ${book.id}');
+  log.info('== 3: book saved , id: ${book.id}');
+}
 
-  var all = await Book.Query.findList();
-  log.info('list is:');
-  log.info(all.map((e) => e.toMap()).toList());
+Future<void> testLoadNestedFields() async {
+  var log = Logger('$logPrefix testLoadNestedFields');
 
-  // just a demo for how to use query:
   var q = Book.Query
-    ..title.startsWith('Dart')
-    ..price.between(10.0, 20)
-    ..author.apply((author) {
-      author
-        ..age.ge(18)
-        ..address.startsWith('China Shanghai');
-    });
-
-  log.info('');
-/* 
-  log.info('-------show conditions begin ----------');
-  q.columns.forEach((c) {
-    debugCondition(c);
-  });
-  log.info('-------show conditions end ----------');
-  log.info('');
- */
-  q.orders = [Book.Query.title.asc()];
-  q.paging(1, 3);
+    ..orders = [Book.Query.title.asc()]
+    ..maxRows = 2;
   var books = await q.findList();
+  var total = await q.count();
 
-  log.info('found books: ${books.length}');
+  log.info('found books: ${books.length}, total: $total');
 
+  log.info('author.address will be auto loaded from db');
   books
       .map((e) => e.toMap(fields: 'title,price,author(id,address)'))
       .forEach(log.info);
-  // log.info('List with nulls:');
-  // books.map((e) => e.toMap(ignoreNull: false)).forEach(log.info);
 }
 
 debugCondition(c) {
