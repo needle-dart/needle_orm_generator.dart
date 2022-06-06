@@ -287,7 +287,7 @@ class _ModelInspector extends ModelInspector<__Model> {
   @override
   void markDeleted(__Model obj, bool deleted) {
     var clz = meta(getClassName(obj))!;
-    var softDeleteField = clz.softDeleteField();
+    var softDeleteField = clz.softDeleteField;
     if (softDeleteField == null) {
       return;
     }
