@@ -5,7 +5,7 @@ import 'dart:cli';
 import 'package:logging/logging.dart';
 import 'package:needle_orm/needle_orm.dart';
 
-import '../main.dart';
+import '../common.dart';
 
 part 'domain.g.dart'; // auto generated code
 part 'domain.part.dart'; // business logic code

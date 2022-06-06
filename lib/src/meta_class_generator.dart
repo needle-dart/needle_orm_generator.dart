@@ -32,7 +32,6 @@ class NeedleOrmMetaInfoGenerator extends Generator {
     values.add(strModelInspector(classes
         .where((element) => !element.isAbstract)
         .map((e) => e.name.removePrefix())));
-    values.add(strSqlExecutor);
 
     for (var clz in classes) {
       var classGen = ClassMetaInfoGenerator(clz);

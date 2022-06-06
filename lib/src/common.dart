@@ -92,22 +92,6 @@ String strModelInspector(Iterable<String> classes) {
   ''';
 }
 
-const strSqlExecutor = '''
-  class _SqlExecutor extends SqlExecutor<__Model> {
-    _SqlExecutor() : super(_ModelInspector());
-
-    @override
-    Future<List<List>> query(
-        String tableName, String query, Map<String, dynamic> substitutionValues,
-        [List<String> returningFields = const []]) {
-      return _globalDs.execute(tableName, query, substitutionValues, returningFields);
-    }
-  }
-
-  final sqlExecutor = _SqlExecutor();
-
-  ''';
-
 const strModel = '''
   abstract class __Model extends Model {
     // abstract begin
@@ -243,7 +227,7 @@ abstract class _BaseModelQuery<T extends __Model, D>
   late QueryModelCache _modelCache;
 
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName})
-      : super(_modelInspector, sqlExecutor,
+      : super(_modelInspector, _globalDs,
             topQuery: topQuery, propName: propName) {
     this._modelCache = QueryModelCache(modelInspector);
   }

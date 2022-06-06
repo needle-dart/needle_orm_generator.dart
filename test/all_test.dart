@@ -1,46 +1,46 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:logging/logging.dart';
-import 'package:mysql1/mysql1.dart';
 import 'package:needle_orm/needle_orm.dart';
-import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
-
+import 'package:test/test.dart';
 import 'src/domain.dart';
+import 'common.dart';
 
-final log = Logger('Main');
-late DataSource globalDs;
 void main() async {
-  Logger.root.level = Level.FINE; // defaults to Level.INFO
-  Logger.root.onRecord.listen((record) {
-    print(
-        '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
+  setUp(() async {
+    await init();
   });
 
-  var settings = ConnectionSettings(
-      host: 'localhost',
-      port: 3306,
-      user: 'needle',
-      password: 'needle',
-      db: 'needle');
-  var conn = await MySqlConnection.connect(settings);
+  tearDown(() async {
+    // await globalDs.close();
+  });
 
-  globalDs = MariaDbDataSource(conn); // used in domain.dart
+  test('general test', () async {
+    await testAll();
+  });
+  test('testFindByIds', () async {
+    await testFindByIds();
+  });
+  test('testCount', () async {
+    await testCount();
+  });
+  test('testInsert', () async {
+    await testInsert();
+  });
+  test('testInsertBatch', () async {
+    await testInsertBatch();
+  });
+  test('testPaging', () async {
+    await testPaging();
+  });
 
-  // await test();
-  // await testFindByIds();
-  // await testCount();
-  // await testInsert();
-  // await testInsertBatch();
-  await testPaging();
-
-  exit(0);
+  // new Timer(const Duration(seconds: 10), () => exit(0));
 }
 
 Future<void> testFindByIds() async {
-  var existBooks = [Book()..id = 4672];
-  var books =
-      await Book.Query.findByIds([1, 15, 16, 4672], existModeList: existBooks);
+  var existBooks = [Book()..id = 4660];
+  var books = await Book.Query.findByIds([1, 15, 16, 4660, 4674],
+      existModeList: existBooks);
   log.info('books list: $books');
   bool reused = books.any((book1) => existBooks.any((book2) => book1 == book2));
   log.info('reused: $reused');
@@ -128,7 +128,7 @@ Future<void> testPaging() async {
   }
 }
 
-Future<void> test() async {
+Future<void> testAll() async {
   var user = User();
 
   user
