@@ -10,6 +10,7 @@ abstract class __Model extends Model {
   // abstract begin
 
   String get __tableName;
+  String get __className;
   String? get __idFieldName;
 
   dynamic __getField(String fieldName, {errorOnNonExistField: true});
@@ -63,7 +64,7 @@ abstract class __Model extends Model {
   }
 
   BaseModelQuery __query(Database? db) =>
-      _modelInspector.newQuery(db ?? _globalDs, className);
+      _modelInspector.newQuery(db ?? _globalDs, __className);
 
   Future<void> insert({Database? db}) async {
     __prePersist();
@@ -256,10 +257,7 @@ abstract class _BaseModelQuery<T extends __Model, D>
 class _ModelInspector extends ModelInspector<__Model> {
   @override
   String getClassName(__Model obj) {
-    if (obj is Book) return 'Book';
-    if (obj is User) return 'User';
-    if (obj is Job) return 'Job';
-    throw 'unknown entity : $obj';
+    return obj.__className;
   }
 
   @override
@@ -587,7 +585,7 @@ abstract class BaseModel extends __Model {
   BaseModel();
 
   @override
-  String get className => 'BaseModel';
+  String get __className => 'BaseModel';
 
   static BaseModelModelQuery Query({Database? db}) =>
       BaseModelModelQuery(db: db);
@@ -629,7 +627,9 @@ abstract class BaseModel extends __Model {
         version = value;
         break;
       case "deleted":
-        deleted = value;
+        deleted = value is bool
+            ? value
+            : (0 == value || null == value || "" == value ? false : true);
         break;
       case "createdAt":
         createdAt = value;
@@ -759,7 +759,7 @@ class Book extends BaseModel {
   Book();
 
   @override
-  String get className => 'Book';
+  String get __className => 'Book';
 
   static BookModelQuery Query({Database? db}) => BookModelQuery(db: db);
 
@@ -909,7 +909,7 @@ class User extends BaseModel {
   User();
 
   @override
-  String get className => 'User';
+  String get __className => 'User';
 
   static UserModelQuery Query({Database? db}) => UserModelQuery(db: db);
 
@@ -1034,7 +1034,7 @@ class Job extends BaseModel {
   Job();
 
   @override
-  String get className => 'Job';
+  String get __className => 'Job';
 
   static JobModelQuery Query({Database? db}) => JobModelQuery(db: db);
 

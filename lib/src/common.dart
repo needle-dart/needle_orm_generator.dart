@@ -4,9 +4,6 @@ String strModelInspector(Iterable<String> classes) {
           "case '$name': return $name()..__markAttached(true, topQuery as _BaseModelQuery);")
       .join('\n');
 
-  var classNameStmt =
-      classes.map((name) => "if (obj is $name) return '$name';").join('\n');
-
   var caseQueryStmt = classes
       .map((name) => "case '$name': return ${name}ModelQuery(db:db);")
       .join("\n");
@@ -17,8 +14,7 @@ String strModelInspector(Iterable<String> classes) {
 
     @override
     String getClassName(__Model obj) {
-      $classNameStmt
-      throw 'unknown entity : \$obj';
+      return obj.__className;
     }
 
     @override
@@ -108,6 +104,7 @@ const strModel = '''
     // abstract begin
 
     String get __tableName;
+    String get __className;
     String? get __idFieldName;
 
     dynamic __getField(String fieldName,
@@ -162,7 +159,7 @@ const strModel = '''
 
       
     BaseModelQuery __query(Database? db) =>
-        _modelInspector.newQuery(db ?? _globalDs, className);
+        _modelInspector.newQuery(db ?? _globalDs, __className);
 
     Future<void> insert({Database? db}) async {
       __prePersist();

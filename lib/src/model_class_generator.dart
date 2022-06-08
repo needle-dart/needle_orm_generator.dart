@@ -162,7 +162,7 @@ class ClassInspector {
 
       $name(); 
 
-      @override String get className => '$name';
+      @override String get __className => '$name';
 
       static ${name}ModelQuery Query({Database? db}) => ${name}ModelQuery(db: db);
 
@@ -318,11 +318,15 @@ class ClassInspector {
     var defaultStmt = isTopClass
         ? "if(errorOnNonExistField){ throw 'class ${clazz.name} has now such field: \$fieldName'; }"
         : "super.__setField(fieldName, value, errorOnNonExistField:errorOnNonExistField );";
+
+    var normalField = 'value';
+    var boolField =
+        'value is bool ? value : ( 0==value || null==value || ""==value ? false : true )';
     return '''
       @override
       void __setField(String fieldName, dynamic value, {errorOnNonExistField: true}){
         switch (fieldName) {
-          ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": ${e.name.removePrefix()} = value; break;').join('\n')} 
+          ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": ${e.name.removePrefix()} = ${e.type.isDartCoreBool ? boolField : normalField}; break;').join('\n')} 
           default: $defaultStmt
         }
       }''';
