@@ -902,7 +902,6 @@ class User extends BaseModel {
 
   set books(List<Book>? v) {
     _books = v;
-    __markDirty('books');
   }
 
   User();

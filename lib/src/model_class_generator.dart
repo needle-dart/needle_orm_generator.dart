@@ -29,6 +29,11 @@ class FieldInspector {
     }
   }
 
+  bool get notExistsInDb =>
+      ormAnnotations.whereType<ManyToMany>().isNotEmpty ||
+      ormAnnotations.whereType<OneToMany>().isNotEmpty ||
+      ormAnnotations.whereType<Transient>().isNotEmpty;
+
   void handleAnnotations(FieldElement ce) {
     ce.metadata.forEach((annot) {
       var name = annot.name;
@@ -63,6 +68,21 @@ class FieldInspector {
         case 'WhoModified':
           ormAnnotations.add(WhoModified());
           break;
+        case 'OneToOne':
+          ormAnnotations.add(OneToOne());
+          break;
+        case 'OneToMany':
+          ormAnnotations.add(OneToMany());
+          break;
+        case 'ManyToOne':
+          ormAnnotations.add(ManyToOne());
+          break;
+        case 'ManyToMany':
+          ormAnnotations.add(ManyToMany());
+          break;
+        case 'Transient':
+          ormAnnotations.add(Transient());
+          break;
       }
     });
   }
@@ -76,7 +96,7 @@ class FieldInspector {
       }
       set $name($_cleanType v) {
         _$name = v;
-        __markDirty('$name');
+        ${notExistsInDb ? '' : '__markDirty(\'$name\');'}
       }
     ''';
   }
