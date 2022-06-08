@@ -19,10 +19,14 @@ class NeedleOrmModelGenerator extends GeneratorForAnnotation<Entity> {
 class FieldInspector {
   final FieldElement fieldElement;
   String name;
+  bool isId = false;
   List<OrmAnnotation> ormAnnotations = [];
 
   FieldInspector(this.fieldElement) : name = fieldElement.name.removePrefix() {
     handleAnnotations(fieldElement);
+    if (ormAnnotations.whereType<ID>().isNotEmpty) {
+      isId = true;
+    }
   }
 
   void handleAnnotations(FieldElement ce) {
@@ -67,7 +71,7 @@ class FieldInspector {
     return '''
       $_cleanType _$name ;
       $_cleanType get $name {
-        __ensureLoaded();
+        ${isId ? '' : '__ensureLoaded();'}
         return _$name;
       }
       set $name($_cleanType v) {

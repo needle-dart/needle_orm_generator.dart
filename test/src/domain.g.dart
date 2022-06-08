@@ -496,7 +496,6 @@ class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
 abstract class BaseModel extends __Model {
   int? _id;
   int? get id {
-    __ensureLoaded();
     return _id;
   }
 
