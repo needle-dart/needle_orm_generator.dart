@@ -34,6 +34,8 @@ class FieldInspector {
       ormAnnotations.whereType<OneToMany>().isNotEmpty ||
       ormAnnotations.whereType<Transient>().isNotEmpty;
 
+  bool get isOneToMany => ormAnnotations.whereType<OneToMany>().isNotEmpty;
+
   void handleAnnotations(FieldElement ce) {
     ce.metadata.forEach((annot) {
       var name = annot.name;
@@ -69,10 +71,10 @@ class FieldInspector {
           ormAnnotations.add(WhoModified());
           break;
         case 'OneToOne':
-          ormAnnotations.add(OneToOne());
+          ormAnnotations.add(annot.toOneToOne());
           break;
         case 'OneToMany':
-          ormAnnotations.add(OneToMany());
+          ormAnnotations.add(annot.toOneToMany());
           break;
         case 'ManyToOne':
           ormAnnotations.add(ManyToOne());
@@ -87,11 +89,25 @@ class FieldInspector {
     });
   }
 
+
+
   String generate() {
+    var lazyOneToManyList = '';
+    if(isOneToMany){
+      var oneToMany = ormAnnotations.whereType<OneToMany>().first;
+      var fieldName = oneToMany.mappedBy!;
+      lazyOneToManyList = '''
+        if (__dbAttached && _books==null) {
+          var meta = _modelInspector.meta('$_queryCleanType')!;
+          var field = meta.fields.firstWhere((f) => f.name=='${fieldName.removePrefix()}');
+          _$name = LazyOneToManyList(meta, field, id);
+        }
+      ''';
+    }
     return '''
       $_cleanType _$name ;
       $_cleanType get $name {
-        ${isId ? '' : '__ensureLoaded();'}
+        ${isId ? '' : ( isOneToMany ? lazyOneToManyList : '__ensureLoaded();') }
         return _$name;
       }
       set $name($_cleanType v) {
@@ -232,12 +248,13 @@ class ClassInspector {
     var joins =
         _fields.where((f) => !f._isSimpleType).map((e) => e.name).join(',');
 
+    var queryClassName = name == 'BaseModel' ? 'BaseModelModelQuery<T extends BaseModel>' : '${name}ModelQuery';
     var queryExtendsClass = name == 'BaseModel'
-        ? '_BaseModelQuery<$name, int>'
-        : 'BaseModelModelQuery';
+        ? '_BaseModelQuery<T, int>'
+        : 'BaseModelModelQuery<$name>';
 
     return '''
-      class ${name}ModelQuery extends $queryExtendsClass {
+      class $queryClassName extends $queryExtendsClass {
         @override
         String get className => '$name';
 

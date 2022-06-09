@@ -462,7 +462,7 @@ final _allOrmClasses = [
 // NeedleOrmModelGenerator
 // **************************************************************************
 
-class BaseModelModelQuery extends _BaseModelQuery<BaseModel, int> {
+class BaseModelModelQuery<T extends BaseModel> extends _BaseModelQuery<T, int> {
   @override
   String get className => 'BaseModel';
 
@@ -705,7 +705,7 @@ abstract class BaseModel extends __Model {
   }
 }
 
-class BookModelQuery extends BaseModelModelQuery {
+class BookModelQuery extends BaseModelModelQuery<Book> {
   @override
   String get className => 'Book';
 
@@ -831,7 +831,7 @@ class Book extends BaseModel {
   }
 }
 
-class UserModelQuery extends BaseModelModelQuery {
+class UserModelQuery extends BaseModelModelQuery<User> {
   @override
   String get className => 'User';
 
@@ -896,7 +896,12 @@ class User extends BaseModel {
 
   List<Book>? _books;
   List<Book>? get books {
-    __ensureLoaded();
+    if (__dbAttached && _books == null) {
+      var meta = _modelInspector.meta('Book')!;
+      var field = meta.fields.firstWhere((f) => f.name == 'author');
+      _books = LazyOneToManyList(meta, field, id);
+    }
+
     return _books;
   }
 
@@ -1003,7 +1008,7 @@ class User extends BaseModel {
   }
 }
 
-class JobModelQuery extends BaseModelModelQuery {
+class JobModelQuery extends BaseModelModelQuery<Job> {
   @override
   String get className => 'Job';
 

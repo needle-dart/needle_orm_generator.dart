@@ -30,6 +30,7 @@ void main() async {
   test('testSoftDelete', testSoftDelete);
   test('testPermanentDelete', testPermanentDelete);
   test('testMultipleDatabases', testMultipleDatabases);
+  test('testOneToMany', testOneToMany);
 
   // new Timer(const Duration(seconds: 10), () => exit(0));
 }
@@ -274,6 +275,18 @@ Future<void> testMultipleDatabases() async {
         'found books[postgresql] , total: $total, totalWithDeleted: $totalWithDeleted');
   }
 }
+
+Future<void> testOneToMany() async {
+  var log = Logger('$logPrefix testOneToMany');
+
+  var q = User.Query()
+    ..maxRows = 2;
+  var users = await q.findList();
+  users.forEach((user) {
+    user.books?.length;
+   });
+}
+
 
 debugCondition(c) {
   if (c is ColumnQuery) {
