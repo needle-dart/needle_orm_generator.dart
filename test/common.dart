@@ -10,10 +10,10 @@ final log = Logger(logPrefix);
 late Database globalDs;
 
 Future<Database> initMariaDb() async {
-  Logger.root.level = Level.FINE; // defaults to Level.INFO
+  Logger.root.level = Level.CONFIG; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
     print(
-        '${record.level.name}: ${record.time} ${record.loggerName}: ${record.message}');
+        '${record.level.name}: ${record.time.toString().padRight(24, '0').substring(0, 24)} ${record.loggerName}: ${record.message}');
   });
 
   var settings = ConnectionSettings(

@@ -24,6 +24,7 @@ void main() async {
   test('testInsert', testInsert);
   test('testUpdate', testUpdate);
   test('testFindByIds', testFindByIds);
+  test('testFindBy', testFindBy);
   test('testInsertBatch', testInsertBatch);
   test('testLoadNestedFields', testLoadNestedFields);
   test('testPaging', testPaging);
@@ -44,7 +45,18 @@ Future<void> testFindByIds() async {
   log.info('books list: $books');
   bool reused = books.any((book1) => existBooks.any((book2) => book1 == book2));
   log.info('reused: $reused');
-  log.info('books: ${books.map((e) => e.toMap()).toList()}');
+  log.info(
+      'books: ${books.map((e) => e.toMap(fields: '*,author(id,name,loginName)')).toList()}');
+}
+
+Future<void> testFindBy() async {
+  var log = Logger('$logPrefix testFindBy');
+
+  var books =
+      await Book.Query().findBy({"author": 5100}); // can use model.id as value
+  log.info('books list: $books');
+  log.info(
+      'books: ${books.map((e) => e.toMap(fields: '*,author(id,name,loginName)')).toList()}');
 }
 
 Future<void> testCount() async {
@@ -171,15 +183,16 @@ Future<void> testLoadNestedFields() async {
 
   var q = Book.Query()
     ..orders = [Book.Query().title.asc()]
-    ..maxRows = 2;
+    ..maxRows = 20;
   var books = await q.findList();
   var total = await q.count();
 
-  log.info('found books: ${books.length}, total: $total');
+  log.info(
+      'found books: ${books.length}, total: $total , ${books.map((e) => "book.id:${e.id} & author.id:${e.author?.id}").toList()}');
 
   log.info('author.address will be auto loaded from db');
   books
-      .map((e) => e.toMap(fields: 'title,price,author(id,address)'))
+      .map((e) => e.toMap(fields: 'id,title,price,author(id,address)'))
       .forEach(log.info);
 }
 
@@ -279,14 +292,16 @@ Future<void> testMultipleDatabases() async {
 Future<void> testOneToMany() async {
   var log = Logger('$logPrefix testOneToMany');
 
-  var q = User.Query()
-    ..maxRows = 2;
+  var q = User.Query()..maxRows = 20;
   var users = await q.findList();
   users.forEach((user) {
-    user.books?.length;
-   });
+    var books = user.books!;
+    log.info(books.length);
+    if (books.length > 0) {
+      log.info('user.book[0]: ${books[0].toMap(fields: "name,title,price")}');
+    }
+  });
 }
-
 
 debugCondition(c) {
   if (c is ColumnQuery) {

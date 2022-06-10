@@ -235,6 +235,7 @@ const strBaseQuery = r'''
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
   late QueryModelCache _modelCache;
+  final logger = Logger('_BaseModelQuery');
 
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
       : super(_modelInspector, db ?? _globalDs,
@@ -248,28 +249,37 @@ abstract class _BaseModelQuery<T extends __Model, D>
 
   void ensureLoaded(Model m) {
     if ((m as __Model).__dbLoaded) return;
+    waitFor(_ensureLoaded(m));
+  }
+
+  Future _ensureLoaded(Model m) async {
+    if ((m as __Model).__dbLoaded) return;
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;
     List<Model> modelList = _modelCache.findUnloadedList(className).toList();
 
-     // limit to 100 rows
+    // limit to 100 rows
     if (modelList.length > 100) {
       modelList = modelList.sublist(0, 100);
     }
     // maybe 101 here
-    if (!modelList.contains(this)) {
+    if (!modelList.contains(m)) {
+      logger.info('\t not contains , add now ...');
       modelList.add(m);
     }
-    
+
     List<dynamic> idList = modelList
         .map((e) => modelInspector.getFieldValue(e, idFieldName!))
+        .toSet()
         .toList(growable: false);
     var newQuery = modelInspector.newQuery(db, className);
     var modelListResult =
-        waitFor(newQuery.findByIds(idList, existModeList: modelList));
+        await newQuery.findByIds(idList, existModeList: modelList);
     for (Model m in modelListResult) {
       (m as __Model).__markLoaded(true);
     }
+    m.__markLoaded(true);
+    // lock.release();
   }
   
 }

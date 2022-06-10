@@ -89,25 +89,23 @@ class FieldInspector {
     });
   }
 
-
-
   String generate() {
     var lazyOneToManyList = '';
-    if(isOneToMany){
+    if (isOneToMany) {
       var oneToMany = ormAnnotations.whereType<OneToMany>().first;
       var fieldName = oneToMany.mappedBy!;
       lazyOneToManyList = '''
         if (__dbAttached && _books==null) {
           var meta = _modelInspector.meta('$_queryCleanType')!;
           var field = meta.fields.firstWhere((f) => f.name=='${fieldName.removePrefix()}');
-          _$name = LazyOneToManyList(meta, field, id);
+          _$name = LazyOneToManyList(db: this.__topQuery!.db, clz: meta, refField:field, refFieldValue: id);
         }
       ''';
     }
     return '''
       $_cleanType _$name ;
       $_cleanType get $name {
-        ${isId ? '' : ( isOneToMany ? lazyOneToManyList : '__ensureLoaded();') }
+        ${isId ? '' : (isOneToMany ? lazyOneToManyList : '__ensureLoaded();')}
         return _$name;
       }
       set $name($_cleanType v) {
@@ -248,7 +246,9 @@ class ClassInspector {
     var joins =
         _fields.where((f) => !f._isSimpleType).map((e) => e.name).join(',');
 
-    var queryClassName = name == 'BaseModel' ? 'BaseModelModelQuery<T extends BaseModel>' : '${name}ModelQuery';
+    var queryClassName = name == 'BaseModel'
+        ? 'BaseModelModelQuery<T extends BaseModel>'
+        : '${name}ModelQuery';
     var queryExtendsClass = name == 'BaseModel'
         ? '_BaseModelQuery<T, int>'
         : 'BaseModelModelQuery<$name>';

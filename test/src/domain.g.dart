@@ -216,6 +216,7 @@ class FieldFilter {
 abstract class _BaseModelQuery<T extends __Model, D>
     extends BaseModelQuery<T, D> {
   late QueryModelCache _modelCache;
+  final logger = Logger('_BaseModelQuery');
 
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
       : super(_modelInspector, db ?? _globalDs,
@@ -229,6 +230,11 @@ abstract class _BaseModelQuery<T extends __Model, D>
 
   void ensureLoaded(Model m) {
     if ((m as __Model).__dbLoaded) return;
+    waitFor(_ensureLoaded(m));
+  }
+
+  Future _ensureLoaded(Model m) async {
+    if ((m as __Model).__dbLoaded) return;
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;
     List<Model> modelList = _modelCache.findUnloadedList(className).toList();
@@ -238,19 +244,23 @@ abstract class _BaseModelQuery<T extends __Model, D>
       modelList = modelList.sublist(0, 100);
     }
     // maybe 101 here
-    if (!modelList.contains(this)) {
+    if (!modelList.contains(m)) {
+      logger.info('\t not contains , add now ...');
       modelList.add(m);
     }
 
     List<dynamic> idList = modelList
         .map((e) => modelInspector.getFieldValue(e, idFieldName!))
+        .toSet()
         .toList(growable: false);
     var newQuery = modelInspector.newQuery(db, className);
     var modelListResult =
-        waitFor(newQuery.findByIds(idList, existModeList: modelList));
+        await newQuery.findByIds(idList, existModeList: modelList);
     for (Model m in modelListResult) {
       (m as __Model).__markLoaded(true);
     }
+    m.__markLoaded(true);
+    // lock.release();
   }
 }
 
@@ -899,7 +909,11 @@ class User extends BaseModel {
     if (__dbAttached && _books == null) {
       var meta = _modelInspector.meta('Book')!;
       var field = meta.fields.firstWhere((f) => f.name == 'author');
-      _books = LazyOneToManyList(meta, field, id);
+      _books = LazyOneToManyList(
+          db: this.__topQuery!.db,
+          clz: meta,
+          refField: field,
+          refFieldValue: id);
     }
 
     return _books;
