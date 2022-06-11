@@ -64,7 +64,7 @@ abstract class __Model extends Model {
   }
 
   BaseModelQuery __query(Database? db) =>
-      _modelInspector.newQuery(db ?? _globalDs, __className);
+      _modelInspector.newQuery(db ?? _globalDb, __className);
 
   Future<void> insert({Database? db}) async {
     __prePersist();
@@ -219,7 +219,7 @@ abstract class _BaseModelQuery<T extends __Model, D>
   final logger = Logger('_BaseModelQuery');
 
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
-      : super(_modelInspector, db ?? _globalDs,
+      : super(_modelInspector, db ?? _globalDb,
             topQuery: topQuery, propName: propName) {
     this._modelCache = QueryModelCache(modelInspector);
   }

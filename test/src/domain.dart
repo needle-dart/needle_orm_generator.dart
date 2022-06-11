@@ -12,7 +12,7 @@ part 'domain.part.dart'; // business logic code
 // all Class names and Field names must start with '_'
 // all business logic must be defined in file : 'domain.part.dart'
 
-var _globalDs = globalDs; // refer to main.dart
+var _globalDb = globalDb; // refer to main.dart
 
 @Entity()
 abstract class _BaseModel {

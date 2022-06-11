@@ -9,7 +9,7 @@ import 'package:postgres_pool/postgres_pool.dart';
 
 final logPrefix = 'MainTest';
 final log = Logger(logPrefix);
-late Database globalDs;
+late Database globalDb;
 
 Future<Database> initMariaDb() async {
   Logger.root.level = Level.CONFIG; // defaults to Level.INFO

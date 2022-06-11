@@ -13,7 +13,7 @@ void main() async {
   setUp(() async {
     dbMariadb = await initMariaDb();
     dbPostgres = await initPostgreSQL();
-    globalDs = dbPostgres;
+    globalDb = dbPostgres;
   });
 
   tearDown(() async {
@@ -322,7 +322,7 @@ Future testMariaDbTransaction() async {
         ..address = 'China Shanghai street_$i ' * (i + 2)
         ..age = n;
       try {
-        log.info('using global db? ${globalDs == db}, using db2? ${db2 == db}');
+        log.info('using global db? ${globalDb == db}, using db2? ${db2 == db}');
         await user.save(db: db);
         // unfortunately, it get blocked here, DO NOT know why for now!
         //TimeoutException after 0:00:30.000000: Test timed out after 30 seconds. See https://pub.dev/packages/test#timeouts
@@ -380,7 +380,7 @@ Future testPgTransaction() async {
         ..address = 'China Shanghai street_$i ' * (i + 2)
         ..age = n;
       try {
-        log.info('using global db? ${globalDs == db}, using db2? ${db2 == db}');
+        log.info('using global db? ${globalDb == db}, using db2? ${db2 == db}');
         await user.save(db: db);
       } catch (e, s) {
         log.severe('save error', e, s);
