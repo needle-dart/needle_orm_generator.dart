@@ -1,12 +1,10 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:mysql1/mysql1.dart';
 import 'package:needle_orm/needle_orm.dart';
 import 'package:test/test.dart';
 import 'src/domain.dart';
 import 'common.dart';
-import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
 
 late Database dbMariadb;
 late Database dbPostgres;
@@ -15,7 +13,7 @@ void main() async {
   setUp(() async {
     dbMariadb = await initMariaDb();
     dbPostgres = await initPostgreSQL();
-    globalDs = dbMariadb;
+    globalDs = dbPostgres;
   });
 
   tearDown(() async {
