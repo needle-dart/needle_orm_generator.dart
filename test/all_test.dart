@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:mysql1/mysql1.dart';
 import 'package:needle_orm/needle_orm.dart';
 import 'package:test/test.dart';
 import 'src/domain.dart';
 import 'common.dart';
+import 'package:needle_orm_mariadb/needle_orm_mariadb.dart';
 
 late Database dbMariadb;
 late Database dbPostgres;
@@ -32,6 +34,10 @@ void main() async {
   test('testPermanentDelete', testPermanentDelete);
   test('testMultipleDatabases', testMultipleDatabases);
   test('testOneToMany', testOneToMany);
+  test('testMariaDbTransaction', testMariaDbTransaction);
+  test('testMariaDbTransaction2', testMariaDbTransaction2);
+  test('testPgTransaction', testPgTransaction);
+  test('testPgTransaction2', testPgTransaction2);
 
   // new Timer(const Duration(seconds: 10), () => exit(0));
 }
@@ -303,19 +309,116 @@ Future<void> testOneToMany() async {
   });
 }
 
-debugCondition(c) {
-  if (c is ColumnQuery) {
-    c.conditions.forEach(log.info);
-  } else if (c is BaseModelQuery) {
-    if (cache.contains(c)) {
-      // prevent circle reference
-      return;
+// Failed for now!
+Future testMariaDbTransaction() async {
+  var log = Logger('$logPrefix testMariaDbTransaction');
+  var q = User.Query();
+  log.info('count before insert : ${await q.count()}');
+  var db2 = await initMariaDb();
+  await db2.transaction((db) async {
+    // var query = User.Query(db: db);
+    var n = 50;
+    for (int i = 1; i < n; i++) {
+      var user = User()
+        ..name = 'tx_name_$i'
+        ..address = 'China Shanghai street_$i ' * (i + 2)
+        ..age = n;
+      try {
+        log.info('using global db? ${globalDs == db}, using db2? ${db2 == db}');
+        await user.save(db: db);
+        // unfortunately, it get blocked here, DO NOT know why for now!
+        //TimeoutException after 0:00:30.000000: Test timed out after 30 seconds. See https://pub.dev/packages/test#timeouts
+        // dart:isolate  _RawReceivePortImpl._handleMessage
+      } catch (e, s) {
+        log.severe('save error', e, s);
+        rethrow;
+      } finally {
+        log.info('saved ....');
+      }
+
+      log.info('\t used saved with id: ${user.id}');
     }
-    cache.add(c);
-    c.columns.forEach((element) {
-      debugCondition(element);
+  });
+
+  log.info('count after insert : ${await q.count()}');
+}
+
+Future testMariaDbTransaction2() async {
+  var logger = Logger('testMariaDbTransaction2');
+  var db = await initMariaDb();
+
+  try {
+    var s = await db.transaction((db) async {
+      var n = 50;
+      for (int i = 1; i < n; i++) {
+        await db.query(
+            "insert into users(name,address) values(@name, @address)", {
+          'name': 'name ' * i,
+          'address': 'China shanghai pudong new district ' * i
+        });
+        print('inserted: $i');
+      }
     });
+    // it's ok transaction will be rollback because of the over-long address
+    print('okok: $s');
+  } catch (e, s) {
+    logger.severe('test error', e, s);
+  } finally {
+    logger.info('test end');
   }
 }
 
-Set<BaseModelQuery> cache = {};
+Future testPgTransaction() async {
+  var log = Logger('$logPrefix testPgTransaction');
+  var q = User.Query();
+  log.info('count before insert : ${await q.count()}');
+  var db2 = await initPostgreSQL();
+  await db2.transaction((db) async {
+    // var query = User.Query(db: db);
+    var n = 50;
+    for (int i = 1; i < n; i++) {
+      var user = User()
+        ..name = 'tx_name_$i'
+        ..address = 'China Shanghai street_$i ' * (i + 2)
+        ..age = n;
+      try {
+        log.info('using global db? ${globalDs == db}, using db2? ${db2 == db}');
+        await user.save(db: db);
+      } catch (e, s) {
+        log.severe('save error', e, s);
+        rethrow;
+      } finally {
+        log.info('saved ....');
+      }
+
+      log.info('\t used saved with id: ${user.id}');
+    }
+  });
+
+  log.info('count after insert : ${await q.count()}');
+}
+
+Future testPgTransaction2() async {
+  var logger = Logger('testPgTransaction2');
+  var db = await initPostgreSQL();
+
+  try {
+    var s = await db.transaction((db) async {
+      var n = 50;
+      for (int i = 1; i < n; i++) {
+        await db.query(
+            "insert into users(name,address) values(@name, @address)", {
+          'name': 'name ' * i,
+          'address': 'China shanghai pudong new district ' * i
+        });
+        print('inserted: $i');
+      }
+    });
+    // it's ok transaction will be rollback because of the over-long address
+    print('okok: $s');
+  } catch (e, s) {
+    logger.severe('test error', e, s);
+  } finally {
+    logger.info('test end');
+  }
+}

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:logging/logging.dart';
 import 'package:mysql1/mysql1.dart';
 import 'package:needle_orm/needle_orm.dart';
@@ -12,8 +14,13 @@ late Database globalDs;
 Future<Database> initMariaDb() async {
   Logger.root.level = Level.CONFIG; // defaults to Level.INFO
   Logger.root.onRecord.listen((record) {
-    print(
-        '${record.level.name}: ${record.time.toString().padRight(24, '0').substring(0, 24)} ${record.loggerName}: ${record.message}');
+    if (record.stackTrace != null) {
+      stderr.writeln(
+          '${record.level.name}: ${record.time.toString().padRight(24, '0').substring(0, 24)} ${record.loggerName}: ${record.message}: ${record.error ?? ''} \n${record.stackTrace}');
+    } else {
+      print(
+          '${record.level.name}: ${record.time.toString().padRight(24, '0').substring(0, 24)} ${record.loggerName}: ${record.message}: ${record.error ?? ''}');
+    }
   });
 
   var settings = ConnectionSettings(
