@@ -194,7 +194,11 @@ Future<void> testLoadNestedFields() async {
   log.info(
       'found books: ${books.length}, total: $total , ${books.map((e) => "book.id:${e.id} & author.id:${e.author?.id}").toList()}');
 
-  log.info('author.address will be auto loaded from db');
+  // should load nested property: author first
+  for (Book book in books) {
+    await book.author?.load();
+    // await book.author?.load(batchSize: 3); // can fetch 3 authors from database every time
+  }
   books
       .map((e) => e.toMap(fields: 'id,title,price,author(id,address)'))
       .forEach(log.info);
@@ -296,15 +300,22 @@ Future<void> testMultipleDatabases() async {
 Future<void> testOneToMany() async {
   var log = Logger('$logPrefix testOneToMany');
 
-  var q = User.Query()..maxRows = 20;
+  var q = User.Query()
+    ..id.gt(18)
+    ..id.lt(23)
+    ..maxRows = 20;
   var users = await q.findList();
-  users.forEach((user) {
-    var books = user.books!;
-    log.info(books.length);
-    if (books.length > 0) {
-      log.info('user.book[0]: ${books[0].toMap(fields: "name,title,price")}');
+  for (User user in users) {
+    var books = user.books;
+    if (books != null && books is LazyOneToManyList) {
+      await (books as LazyOneToManyList).load();
     }
-  });
+    log.info(books?.length);
+    if ((books?.length ?? 0) > 0) {
+      log.info(
+          'user: ${user.toMap(fields: "id,name,address,books(id,title,price)")}');
+    }
+  }
 }
 
 // Failed for now!

@@ -140,7 +140,6 @@ const strModel = '''
       return __dirtyFields.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
     }
 
-
     void __markAttached(bool attached, _BaseModelQuery topQuery) {
       __dbAttached = attached;
       __topQuery = topQuery;
@@ -151,12 +150,18 @@ const strModel = '''
       __dbLoaded = loaded;
     }
 
-    void __ensureLoaded() {
+    Future load({int batchSize = 1}) async {
       if (__dbAttached && !__dbLoaded) {
-        __topQuery?.ensureLoaded(this);
+        await __topQuery?.ensureLoaded(this, batchSize: batchSize);
       }
     }
 
+    void __ensureLoaded() {
+      if (__dbAttached && !__dbLoaded) {
+        throw 'should call load() before accessing properties!';
+        // __topQuery?.ensureLoaded(this);
+      }
+    }
       
     BaseModelQuery __query(Database? db) =>
         _modelInspector.newQuery(db ?? _globalDb, __className);
@@ -247,25 +252,26 @@ abstract class _BaseModelQuery<T extends __Model, D>
     _modelCache.add(m);
   }
 
-  void ensureLoaded(Model m) {
-    if ((m as __Model).__dbLoaded) return;
-    waitFor(_ensureLoaded(m));
-  }
-
-  Future _ensureLoaded(Model m) async {
+  Future ensureLoaded(Model m, {int batchSize = 1}) async {
     if ((m as __Model).__dbLoaded) return;
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;
-    List<Model> modelList = _modelCache.findUnloadedList(className).toList();
+    List<Model> modelList;
 
-    // limit to 100 rows
-    if (modelList.length > 100) {
-      modelList = modelList.sublist(0, 100);
-    }
-    // maybe 101 here
-    if (!modelList.contains(m)) {
-      logger.info('\t not contains , add now ...');
-      modelList.add(m);
+    if (batchSize > 1) {
+      modelList = _modelCache.findUnloadedList(className).toList();
+
+      // limit to 100 rows
+      if (modelList.length > batchSize) {
+        modelList = modelList.sublist(0, batchSize);
+      }
+      // maybe 101 here
+      if (!modelList.contains(m)) {
+        logger.info('\t not contains , add now ...');
+        modelList.add(m);
+      }
+    } else {
+      modelList = [m];
     }
 
     List<dynamic> idList = modelList

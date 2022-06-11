@@ -1,6 +1,6 @@
 name: needle_orm_generator
-description: Generate all orm helper classes for needle orm.
-version: 0.0.1
+description: Generate all orm helper classes for needle-orm.
+version: 0.0.2
 homepage: https://github.com/needle-dart/needle_orm_generator.dart
 repository: https://github.com/needle-dart/needle_orm_generator.dart
 
@@ -8,12 +8,12 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  analyzer: ">=2.0.0 <4.0.0"
+  analyzer: ">=2.0.0 <4.2.0"
   build: ^2.0.0
   build_config: ^1.0.0
   code_builder: ^4.0.0
   source_gen: ^1.0.0
-  needle_orm: ^0.0.1
+  needle_orm: ^0.0.2
   logging: ^1.0.2
 
 dev_dependencies:
@@ -25,3 +25,10 @@ dev_dependencies:
   postgres_pool: ^2.1.3
   needle_orm_mariadb: ^0.0.1
   needle_orm_postgres: ^0.0.1
+# dependency_overrides:
+#   needle_orm:
+#     path: ../needle_orm
+# needle_orm_mariadb:
+#   path: ../needle_orm_mariadb
+# needle_orm_postgres:
+#   path: ../needle_orm_postgres

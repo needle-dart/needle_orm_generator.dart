@@ -45,6 +45,7 @@ class NeedleOrmMetaInfoGenerator extends Generator {
   }
 }
 
+/// generator for meta classes
 class ClassMetaInfoGenerator {
   final ClassElement clazz;
   String name;
@@ -82,6 +83,7 @@ class ClassMetaInfoGenerator {
   }
 }
 
+/// generator for fields meta info.
 class FieldMetaInfoGenerator {
   final FieldElement field;
   String name;

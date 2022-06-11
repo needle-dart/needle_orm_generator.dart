@@ -5,6 +5,7 @@ import 'package:needle_orm/needle_orm.dart';
 import 'package:source_gen/source_gen.dart';
 import 'helper.dart';
 
+/// generator model parital file.
 class NeedleOrmModelGenerator extends GeneratorForAnnotation<Entity> {
   @override
   FutureOr<String> generateForAnnotatedElement(

@@ -1,7 +1,5 @@
 // ignore_for_file: unused_field, unused_element
 
-import 'dart:cli';
-
 import 'package:logging/logging.dart';
 import 'package:needle_orm/needle_orm.dart';
 import '../common.dart';
