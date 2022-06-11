@@ -6,9 +6,9 @@ targets:
 
 builders:
   needle_orm_generator:
-    import: "package:needle_orm_generator/builder.dart"
+    import: "package:needle_orm_generator/needle_orm_generator.dart"
     builder_factories: ["ormGenerator"]
-    build_extensions: {".dart": [".orm.g.dart"]}
+    build_extensions: { ".dart": [".orm.g.dart"] }
     auto_apply: dependents
     build_to: cache
     applies_builders: ["source_gen|combining_builder"]
