@@ -99,7 +99,7 @@ class FieldInspector {
         if (__dbAttached && _books==null) {
           var meta = _modelInspector.meta('$_queryCleanType')!;
           var field = meta.fields.firstWhere((f) => f.name=='${fieldName.removePrefix()}');
-          _$name = LazyOneToManyList(db: this.__topQuery!.db, clz: meta, refField:field, refFieldValue: id);
+          _$name = LazyOneToManyList(db: __topQuery!.db, clz: meta, refField:field, refFieldValue: id);
         }
       ''';
     }
@@ -203,17 +203,17 @@ class ClassInspector {
 
       @override String get __className => '$name';
 
-      static ${name}ModelQuery Query({Database? db}) => ${name}ModelQuery(db: db);
+      static ${name}ModelQuery query({Database? db}) => ${name}ModelQuery(db: db);
 
       ${overrideGetField(classElement)}
       ${overrideSetField(classElement)}
 
       ${overrideToMap(classElement)}
 
-      @override
-      String get __tableName {
-        return "$tableName";
-      }
+      // @override
+      // String get __tableName {
+      //   return "$tableName";
+      // }
 
       @override
       String? get __idFieldName{
@@ -259,12 +259,17 @@ class ClassInspector {
         @override
         String get className => '$name';
 
-        ${name}ModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db}) : super(topQuery: topQuery, propName: propName, db:db);
+        ${name}ModelQuery(
+          // ignore: library_private_types_in_public_api
+          {_BaseModelQuery? topQuery, String? propName, Database? db})
+          : super(topQuery: topQuery, propName: propName, db:db);
 
         $fields
 
+        @override
         List<ColumnQuery> get columns => [$columns];
 
+        @override
         List<BaseModelQuery> get joins => [$joins];
 
       }
@@ -348,7 +353,7 @@ class ClassInspector {
         : "return super.__getField(fieldName, errorOnNonExistField:errorOnNonExistField);";
     return '''
       @override
-      dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
+      dynamic __getField(String fieldName, {errorOnNonExistField = true}) {
         switch (fieldName) {
           ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": return _${e.name.removePrefix()};').join('\n')} 
           default: $defaultStmt
@@ -366,7 +371,7 @@ class ClassInspector {
         'value is bool ? value : ( 0==value || null==value || ""==value ? false : true )';
     return '''
       @override
-      void __setField(String fieldName, dynamic value, {errorOnNonExistField: true}){
+      void __setField(String fieldName, dynamic value, {errorOnNonExistField = true}){
         switch (fieldName) {
           ${clazz.fields.map((e) => 'case "${e.name.removePrefix()}": ${e.name.removePrefix()} = ${e.type.isDartCoreBool ? boolField : normalField}; break;').join('\n')} 
           default: $defaultStmt

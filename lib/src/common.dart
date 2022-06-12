@@ -56,15 +56,15 @@ String strModelInspector(Iterable<String> classes) {
     @override
     Map<String, dynamic> getDirtyFields(__Model model) {
       var map = <String, dynamic>{};
-      model.__dirtyFields.forEach((name) {
+      for (var name in model.__dirtyFields) {
         map[name] = model.__getField(name);
-      });
+      }
       return map;
     }
 
     @override
     void loadModel(__Model model, Map<String, dynamic> m,
-        {errorOnNonExistField: false}) {
+        {errorOnNonExistField = false}) {
       model.loadMap(m, errorOnNonExistField: false);
       model.__dbAttached = true;
       model.__dbLoaded = true;
@@ -81,6 +81,7 @@ String strModelInspector(Iterable<String> classes) {
       }
     }
 
+    @override
     BaseModelQuery newQuery(Database db, String name) {
       switch (name) {
         $caseQueryStmt
@@ -103,14 +104,15 @@ const strModel = '''
   abstract class __Model extends Model {
     // abstract begin
 
-    String get __tableName;
+    // String get __tableName;
     String get __className;
     String? get __idFieldName;
 
+    // ignore: unused_element
     dynamic __getField(String fieldName,
-      {errorOnNonExistField: true});
+      {errorOnNonExistField = true});
     void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true});
+      {errorOnNonExistField = true});
 
     // abstract end
 
@@ -122,7 +124,7 @@ const strModel = '''
     // mark all modified fields after loaded
     final __dirtyFields = <String>{};
 
-    void loadMap(Map<String, dynamic> m, {errorOnNonExistField: false}) {
+    void loadMap(Map<String, dynamic> m, {errorOnNonExistField = false}) {
       m.forEach((key, value) {
         __setField(key, value, errorOnNonExistField: errorOnNonExistField);
       });
@@ -136,9 +138,9 @@ const strModel = '''
       __dirtyFields.clear();
     }
 
-    String __dirtyValues() {
-      return __dirtyFields.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
-    }
+    // String __dirtyValues() {
+    //   return __dirtyFields.map((e) => "\${e.toLowerCase()} : \${__getField(e)}").join(", ");
+    // }
 
     void __markAttached(bool attached, _BaseModelQuery topQuery) {
       __dbAttached = attached;
@@ -150,7 +152,8 @@ const strModel = '''
       __dbLoaded = loaded;
     }
 
-    Future load({int batchSize = 1}) async {
+    @override
+    Future<void> load({int batchSize = 1}) async {
       if (__dbAttached && !__dbLoaded) {
         await __topQuery?.ensureLoaded(this, batchSize: batchSize);
       }
@@ -216,10 +219,13 @@ const strModelCache = r'''
 /// cache bound with a top query
 class QueryModelCache {
   final ModelInspector modelInspector;
+
+  // ignore: library_private_types_in_public_api
   Map<String, List<__Model>> cacheMap = {};
 
   QueryModelCache(this.modelInspector);
 
+  // ignore: library_private_types_in_public_api
   void add(__Model m) {
     var className = modelInspector.getClassName(m);
     var list = cacheMap[className] ?? [];
@@ -229,6 +235,7 @@ class QueryModelCache {
     cacheMap[className] = list;
   }
 
+  // ignore: library_private_types_in_public_api
   Iterable<__Model> findUnloadedList(String className) {
     cacheMap[className] ??= [];
     return cacheMap[className]!.where((e) => !e.__dbLoaded);
@@ -245,14 +252,14 @@ abstract class _BaseModelQuery<T extends __Model, D>
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
       : super(_modelInspector, db ?? _globalDb,
             topQuery: topQuery, propName: propName) {
-    this._modelCache = QueryModelCache(modelInspector);
+    _modelCache = QueryModelCache(modelInspector);
   }
 
   void cache(__Model m) {
     _modelCache.add(m);
   }
 
-  Future ensureLoaded(Model m, {int batchSize = 1}) async {
+  Future<void> ensureLoaded(Model m, {int batchSize = 1}) async {
     if ((m as __Model).__dbLoaded) return;
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;

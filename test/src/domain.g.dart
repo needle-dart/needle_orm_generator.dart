@@ -9,13 +9,14 @@ part of 'domain.dart';
 abstract class __Model extends Model {
   // abstract begin
 
-  String get __tableName;
+  // String get __tableName;
   String get __className;
   String? get __idFieldName;
 
-  dynamic __getField(String fieldName, {errorOnNonExistField: true});
+  // ignore: unused_element
+  dynamic __getField(String fieldName, {errorOnNonExistField = true});
   void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true});
+      {errorOnNonExistField = true});
 
   // abstract end
 
@@ -27,7 +28,7 @@ abstract class __Model extends Model {
   // mark all modified fields after loaded
   final __dirtyFields = <String>{};
 
-  void loadMap(Map<String, dynamic> m, {errorOnNonExistField: false}) {
+  void loadMap(Map<String, dynamic> m, {errorOnNonExistField = false}) {
     m.forEach((key, value) {
       __setField(key, value, errorOnNonExistField: errorOnNonExistField);
     });
@@ -41,11 +42,9 @@ abstract class __Model extends Model {
     __dirtyFields.clear();
   }
 
-  String __dirtyValues() {
-    return __dirtyFields
-        .map((e) => "${e.toLowerCase()} : ${__getField(e)}")
-        .join(", ");
-  }
+  // String __dirtyValues() {
+  //   return __dirtyFields.map((e) => "${e.toLowerCase()} : ${__getField(e)}").join(", ");
+  // }
 
   void __markAttached(bool attached, _BaseModelQuery topQuery) {
     __dbAttached = attached;
@@ -57,7 +56,8 @@ abstract class __Model extends Model {
     __dbLoaded = loaded;
   }
 
-  Future load({int batchSize = 1}) async {
+  @override
+  Future<void> load({int batchSize = 1}) async {
     if (__dbAttached && !__dbLoaded) {
       await __topQuery?.ensureLoaded(this, batchSize: batchSize);
     }
@@ -121,10 +121,13 @@ abstract class __Model extends Model {
 /// cache bound with a top query
 class QueryModelCache {
   final ModelInspector modelInspector;
+
+  // ignore: library_private_types_in_public_api
   Map<String, List<__Model>> cacheMap = {};
 
   QueryModelCache(this.modelInspector);
 
+  // ignore: library_private_types_in_public_api
   void add(__Model m) {
     var className = modelInspector.getClassName(m);
     var list = cacheMap[className] ?? [];
@@ -134,6 +137,7 @@ class QueryModelCache {
     cacheMap[className] = list;
   }
 
+  // ignore: library_private_types_in_public_api
   Iterable<__Model> findUnloadedList(String className) {
     cacheMap[className] ??= [];
     return cacheMap[className]!.where((e) => !e.__dbLoaded);
@@ -228,14 +232,14 @@ abstract class _BaseModelQuery<T extends __Model, D>
   _BaseModelQuery({BaseModelQuery? topQuery, String? propName, Database? db})
       : super(_modelInspector, db ?? _globalDb,
             topQuery: topQuery, propName: propName) {
-    this._modelCache = QueryModelCache(modelInspector);
+    _modelCache = QueryModelCache(modelInspector);
   }
 
   void cache(__Model m) {
     _modelCache.add(m);
   }
 
-  Future ensureLoaded(Model m, {int batchSize = 1}) async {
+  Future<void> ensureLoaded(Model m, {int batchSize = 1}) async {
     if ((m as __Model).__dbLoaded) return;
     var className = modelInspector.getClassName(m);
     var idFieldName = m.__idFieldName;
@@ -315,15 +319,15 @@ class _ModelInspector extends ModelInspector<__Model> {
   @override
   Map<String, dynamic> getDirtyFields(__Model model) {
     var map = <String, dynamic>{};
-    model.__dirtyFields.forEach((name) {
+    for (var name in model.__dirtyFields) {
       map[name] = model.__getField(name);
-    });
+    }
     return map;
   }
 
   @override
   void loadModel(__Model model, Map<String, dynamic> m,
-      {errorOnNonExistField: false}) {
+      {errorOnNonExistField = false}) {
     model.loadMap(m, errorOnNonExistField: false);
     model.__dbAttached = true;
     model.__dbLoaded = true;
@@ -345,6 +349,7 @@ class _ModelInspector extends ModelInspector<__Model> {
     }
   }
 
+  @override
   BaseModelQuery newQuery(Database db, String name) {
     switch (name) {
       case 'Book':
@@ -485,7 +490,10 @@ class BaseModelModelQuery<T extends BaseModel> extends _BaseModelQuery<T, int> {
   String get className => 'BaseModel';
 
   BaseModelModelQuery(
-      {_BaseModelQuery? topQuery, String? propName, Database? db})
+      // ignore: library_private_types_in_public_api
+      {_BaseModelQuery? topQuery,
+      String? propName,
+      Database? db})
       : super(topQuery: topQuery, propName: propName, db: db);
 
   IntColumn id = IntColumn("id");
@@ -497,6 +505,7 @@ class BaseModelModelQuery<T extends BaseModel> extends _BaseModelQuery<T, int> {
   StringColumn lastUpdatedBy = StringColumn("lastUpdatedBy");
   StringColumn remark = StringColumn("remark");
 
+  @override
   List<ColumnQuery> get columns => [
         id,
         version,
@@ -508,6 +517,7 @@ class BaseModelModelQuery<T extends BaseModel> extends _BaseModelQuery<T, int> {
         remark
       ];
 
+  @override
   List<BaseModelQuery> get joins => [];
 }
 
@@ -604,11 +614,11 @@ abstract class BaseModel extends __Model {
   @override
   String get __className => 'BaseModel';
 
-  static BaseModelModelQuery Query({Database? db}) =>
+  static BaseModelModelQuery query({Database? db}) =>
       BaseModelModelQuery(db: db);
 
   @override
-  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
+  dynamic __getField(String fieldName, {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "id":
         return _id;
@@ -635,7 +645,7 @@ abstract class BaseModel extends __Model {
 
   @override
   void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true}) {
+      {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "id":
         id = value;
@@ -712,10 +722,10 @@ abstract class BaseModel extends __Model {
     };
   }
 
-  @override
-  String get __tableName {
-    return "basemodel";
-  }
+  // @override
+  // String get __tableName {
+  //   return "basemodel";
+  // }
 
   @override
   String? get __idFieldName {
@@ -727,15 +737,21 @@ class BookModelQuery extends BaseModelModelQuery<Book> {
   @override
   String get className => 'Book';
 
-  BookModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+  BookModelQuery(
+      // ignore: library_private_types_in_public_api
+      {_BaseModelQuery? topQuery,
+      String? propName,
+      Database? db})
       : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn title = StringColumn("title");
   DoubleColumn price = DoubleColumn("price");
   UserModelQuery get author => topQuery.findQuery(db, "User", "author");
 
+  @override
   List<ColumnQuery> get columns => [title, price];
 
+  @override
   List<BaseModelQuery> get joins => [author];
 }
 
@@ -778,10 +794,10 @@ class Book extends BaseModel {
   @override
   String get __className => 'Book';
 
-  static BookModelQuery Query({Database? db}) => BookModelQuery(db: db);
+  static BookModelQuery query({Database? db}) => BookModelQuery(db: db);
 
   @override
-  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
+  dynamic __getField(String fieldName, {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "title":
         return _title;
@@ -797,7 +813,7 @@ class Book extends BaseModel {
 
   @override
   void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true}) {
+      {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "title":
         title = value;
@@ -838,10 +854,10 @@ class Book extends BaseModel {
     };
   }
 
-  @override
-  String get __tableName {
-    return "book";
-  }
+  // @override
+  // String get __tableName {
+  //   return "book";
+  // }
 
   @override
   String? get __idFieldName {
@@ -853,7 +869,11 @@ class UserModelQuery extends BaseModelModelQuery<User> {
   @override
   String get className => 'User';
 
-  UserModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+  UserModelQuery(
+      // ignore: library_private_types_in_public_api
+      {_BaseModelQuery? topQuery,
+      String? propName,
+      Database? db})
       : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn name = StringColumn("name");
@@ -862,8 +882,10 @@ class UserModelQuery extends BaseModelModelQuery<User> {
   IntColumn age = IntColumn("age");
   BookModelQuery get books => topQuery.findQuery(db, "Book", "books");
 
+  @override
   List<ColumnQuery> get columns => [name, loginName, address, age];
 
+  @override
   List<BaseModelQuery> get joins => [books];
 }
 
@@ -918,10 +940,7 @@ class User extends BaseModel {
       var meta = _modelInspector.meta('Book')!;
       var field = meta.fields.firstWhere((f) => f.name == 'author');
       _books = LazyOneToManyList(
-          db: this.__topQuery!.db,
-          clz: meta,
-          refField: field,
-          refFieldValue: id);
+          db: __topQuery!.db, clz: meta, refField: field, refFieldValue: id);
     }
 
     return _books;
@@ -936,10 +955,10 @@ class User extends BaseModel {
   @override
   String get __className => 'User';
 
-  static UserModelQuery Query({Database? db}) => UserModelQuery(db: db);
+  static UserModelQuery query({Database? db}) => UserModelQuery(db: db);
 
   @override
-  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
+  dynamic __getField(String fieldName, {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "name":
         return _name;
@@ -959,7 +978,7 @@ class User extends BaseModel {
 
   @override
   void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true}) {
+      {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "name":
         name = value;
@@ -1009,10 +1028,10 @@ class User extends BaseModel {
     };
   }
 
-  @override
-  String get __tableName {
-    return "user";
-  }
+  // @override
+  // String get __tableName {
+  //   return "user";
+  // }
 
   @override
   String? get __idFieldName {
@@ -1034,13 +1053,19 @@ class JobModelQuery extends BaseModelModelQuery<Job> {
   @override
   String get className => 'Job';
 
-  JobModelQuery({_BaseModelQuery? topQuery, String? propName, Database? db})
+  JobModelQuery(
+      // ignore: library_private_types_in_public_api
+      {_BaseModelQuery? topQuery,
+      String? propName,
+      Database? db})
       : super(topQuery: topQuery, propName: propName, db: db);
 
   StringColumn name = StringColumn("name");
 
+  @override
   List<ColumnQuery> get columns => [name];
 
+  @override
   List<BaseModelQuery> get joins => [];
 }
 
@@ -1061,10 +1086,10 @@ class Job extends BaseModel {
   @override
   String get __className => 'Job';
 
-  static JobModelQuery Query({Database? db}) => JobModelQuery(db: db);
+  static JobModelQuery query({Database? db}) => JobModelQuery(db: db);
 
   @override
-  dynamic __getField(String fieldName, {errorOnNonExistField: true}) {
+  dynamic __getField(String fieldName, {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "name":
         return _name;
@@ -1076,7 +1101,7 @@ class Job extends BaseModel {
 
   @override
   void __setField(String fieldName, dynamic value,
-      {errorOnNonExistField: true}) {
+      {errorOnNonExistField = true}) {
     switch (fieldName) {
       case "name":
         name = value;
@@ -1102,10 +1127,10 @@ class Job extends BaseModel {
     };
   }
 
-  @override
-  String get __tableName {
-    return "job";
-  }
+  // @override
+  // String get __tableName {
+  //   return "job";
+  // }
 
   @override
   String? get __idFieldName {
